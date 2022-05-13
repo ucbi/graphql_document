@@ -49,6 +49,8 @@ end
 |> Absinthe.run(MyProject.Schema)
 ```
 
+For more information on syntax and features, read the docs in `GraphqlDocument`.
+
 ## License
 
 Copyright 2022 United Community Bank
