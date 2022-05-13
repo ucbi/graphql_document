@@ -1,28 +1,44 @@
 defmodule GraphqlDocument.MixProject do
   use Mix.Project
 
+  @version "1.0.0"
+  @source_url "https://github.com/ucbi/graphql_document"
+
   def project do
     [
       app: :graphql_document,
-      version: "0.1.0",
-      elixir: "~> 1.13",
+      version: @version,
+      elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: [],
+
+      # Hex
+      description: "Build GraphQL document strings from Elixir primitives",
+      package: package(),
+
+      # Docs
+      name: "GraphqlDocument",
+      docs: docs()
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
-  def application do
-    [
-      extra_applications: [:logger]
-    ]
+  defp package do
+    %{
+      licenses: ["MIT"],
+      links: %{
+        GitHub: @source_url
+      }
+    }
   end
 
-  # Run "mix help deps" to learn about dependencies.
-  defp deps do
+  defp docs do
     [
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+      main: "readme",
+      source_ref: "v#{@version}",
+      source_url: @source_url,
+      extras: [
+        "README.md"
+      ]
     ]
   end
 end
