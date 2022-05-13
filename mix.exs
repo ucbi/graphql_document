@@ -10,7 +10,7 @@ defmodule GraphqlDocument.MixProject do
       version: @version,
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
-      deps: [],
+      deps: deps(),
 
       # Hex
       description: "Build GraphQL document strings from Elixir primitives",
@@ -19,6 +19,12 @@ defmodule GraphqlDocument.MixProject do
       # Docs
       name: "GraphqlDocument",
       docs: docs()
+    ]
+  end
+
+  defp deps do
+    [
+      {:ex_doc, ">= 0.19.0", only: [:dev, :docs], runtime: false}
     ]
   end
 

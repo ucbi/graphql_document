@@ -1,7 +1,155 @@
 defmodule GraphqlDocument do
   @moduledoc """
-  Utilities for building GraphQL documents, i.e. strings that contain a GraphQL
-  query/mutation.
+  A utility for building GraphQL documents. (Strings that contain a GraphQL query/mutation.)
+
+  ## Syntax
+
+  `GraphqlDocument.to_string` converts nested lists/keyword lists into the analogous
+  GraphQL syntax.
+
+  Simply write lists and keyword lists "as they look in GraphQL".
+
+  Let's take a look at some examples.
+
+  ### Object Fields
+
+  To request a list of fields in an object, include them in a list:
+
+  ```elixir
+  [query: [
+    human: [:name, :height]
+  ]]
+  ```
+
+  `GraphqlDocument.to_string/1` will take that Elixir structure and return
+
+  ```elixir
+  \"\"\"
+  query {
+    human {
+      name
+      height
+    }
+  }
+  \"\"\"
+  ```
+
+  ### Arguments
+
+  When a field includes arguments, wrap the arguments and child fields in a
+  tuple, like this:
+
+  ```elixir
+  {args, fields}
+  ```
+
+  For example, `GraphqlDocument.to_string/1` will take this Elixir structure
+
+  ```elixir
+  [query: [
+    human: {
+      [id: "1000"],
+      [:name, :height]
+    }
+  ]]
+  ```
+
+  and return this GraphQL document:
+
+  ```elixir
+  \"\"\"
+  query {
+    human(id: "1000") {
+      name
+      height
+    }
+  }
+  \"\"\"
+  ```
+
+  #### Argument types and Enums
+
+  `GraphqlDocument.to_string/1` will translate Elixir primitives into the
+  analogous GraphQL primitive type for arguments.
+
+  GraphQL enums can be expressed as an atom (e.g. `FOOT`) or in a tuple
+  syntax, `{:enum, "FOOT"}`.
+
+  For example:
+
+  ```elixir
+  [query: [
+    human: {
+      [id: "1000"],
+      [:name, height: {[unit: FOOT], []}]
+    }
+  ]]
+  ```
+
+  becomes
+
+  ```elixir
+  query {
+    human(id: "1000") {
+      name
+      height(unit: FOOT)
+    }
+  }
+  ```
+
+  We can specify `[unit: FOOT]` as `[unit: {:enum, "FOOT"}]`, which
+  is useful for interpolating dynamic values into the query.
+
+  > #### Expressing arguments without sub-fields {: .tip}
+  >
+  > Notice the slightly complicated syntax above: `height: {[unit: FOOT], []}`
+  >
+  > The way to include arguments is in an `{args, fields}` tuple. So if a
+  > field has arguments but no sub-fields, put `[]` where the sub-fields go.
+
+  ### Nesting Fields
+
+  Since GraphQL supports a theoretically infinite amount of nesting, you can also
+  nest as much as needed in the Elixir structure.
+
+  Furthermore, we can take advantage of Elixir's syntax feature that allows a
+  regular list to be "mixed" with a keyword list:
+
+  ```elixir
+  # Elixir allows lists with a Keyword List as the final members
+  [:name, :height, friends: [:name, :age]]
+  ```
+
+  Using this syntax, we can build a nested structure like this:
+
+  ```elixir
+  [query: [
+    human: {
+      [id: "1000"],
+      [
+        :name,
+        :height,
+        friends: {
+          [olderThan: 30],
+          [:name, :height]
+        }
+      ]
+    }
+  ]]
+  ```
+
+  ```elixir
+  query {
+    human(id: "1000") {
+      name
+      height
+      friends(olderThan: 30) {
+        name
+        height
+      }
+    }
+  }
+  ```
   """
 
   @doc """
