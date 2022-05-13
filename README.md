@@ -1,23 +1,53 @@
 # GraphqlDocument
 
-**TODO: Add description**
+[![Build Status](https://github.com/ucbi/graphql_document/workflows/CI/badge.svg)](https://github.com/ucbi/graphql_document/actions?query=workflow%3A%22CI%22)
+[![hex.pm](https://img.shields.io/hexpm/v/graphql_document.svg)](https://hex.pm/packages/graphql_document)
+[![hex.pm](https://img.shields.io/hexpm/l/graphql_document.svg)](https://hex.pm/packages/graphql_document)
+
+Build [GraphQL](https://graphql.org/) document strings from Elixir primitives.
+
+## Better DX for internal GraphQL queries
+
+The goal of this package is to improve the developer experience of
+making GraphQL calls in Elixir by calling directly into GraphQL libraries such
+as [Absinthe](https://hex.pm/packages/absinthe) without making API calls.
+
+For Elixir projects that utilize [LiveView](https://hex.pm/packages/phoenix_live_view)
+and GraphQL, passing GraphQL queries as strings, `GraphqlDocument` can add value by
+making it easier to:
+
+- Compose separate GraphQL documents together.
+- Dynamically build GraphQL documents, e.g. including or excluding various parts.
+- Interpolate arguments safely.
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `graphql_document` to your list of dependencies in `mix.exs`:
+Add `:graphql_document` as a dependency in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:graphql_document, "~> 0.1.0"}
+    {:graphql_document, "~> 1.0.0"}
   ]
 end
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/graphql_document>.
+## Usage
+
+### With [Absinthe](https://hex.pm/packages/absinthe)
+
+```elixir
+[
+  query: [
+    user: {
+      [id: 3],
+      [:name, :age, :height, documents: [:filename, :url]]
+    }
+  ]
+]
+|> GraphqlDocument.to_string()
+|> Absinthe.run(MyProject.Schema)
+```
 
 ## License
 
