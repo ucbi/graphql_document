@@ -196,5 +196,27 @@ defmodule GraphQLDocumentTest do
         )
       end
     end
+
+    test "list and object arguments" do
+      result =
+        GraphQLDocument.to_string(
+          query: [
+            users: {
+              [ids: [1, 2, 3], filters: [status: "active"]],
+              [:name]
+            }
+          ]
+        )
+
+      expected = """
+      query {
+        users(ids: [1, 2, 3], filters: {status: "active"}) {
+          name
+        }
+      }\
+      """
+
+      assert result == expected
+    end
   end
 end

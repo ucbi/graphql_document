@@ -226,13 +226,6 @@ defmodule GraphQLDocument do
       """
   end
 
-  defp argument({:enum, enum}) when is_binary(enum) do
-    if valid_name?(enum) do
-      enum
-    else
-      raise ArgumentError, message: "[GraphQLDocument] Enums must be a valid GraphQL name, matching this regex: /[_A-Za-z][_0-9A-Za-z]*/"
-    end
-  end
   defp argument(%Date{} = date), do: inspect(Date.to_iso8601(date))
   defp argument(%DateTime{} = date_time), do: inspect(DateTime.to_iso8601(date_time))
   defp argument(%Time{} = time), do: inspect(Time.to_iso8601(time))
@@ -242,6 +235,14 @@ defmodule GraphQLDocument do
 
   if Code.ensure_loaded?(Decimal) do
     defp argument(%Decimal{} = decimal), do: Decimal.to_string(decimal)
+  end
+
+  defp argument({:enum, enum}) when is_binary(enum) do
+    if valid_name?(enum) do
+      enum
+    else
+      raise ArgumentError, message: "[GraphQLDocument] Enums must be a valid GraphQL name, matching this regex: /[_A-Za-z][_0-9A-Za-z]*/"
+    end
   end
 
   defp argument([]), do: "[]"
