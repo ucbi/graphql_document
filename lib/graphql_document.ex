@@ -314,8 +314,13 @@ defmodule GraphQLDocument do
     inspect(value, printable_limit: :infinity)
   end
 
+  defp argument(value) when is_boolean(value) do
+    inspect(value)
+  end
+
   defp argument(value) when is_atom(value) do
-    raise ArgumentError, message: "[GraphQLDocument] Cannot pass an atom as an argument"
+    raise ArgumentError,
+      message: "[GraphQLDocument] Cannot pass an atom as an argument; received `#{value}`"
   end
 
   # A GraphQL "Name" matches the following regex.

@@ -14,7 +14,7 @@ defmodule GraphQLDocumentTest do
                  :total,
                  items: ~w(description amount),
                  payments: {
-                   [after: "2021-01-01"],
+                   [after: "2021-01-01", posted: true],
                    ~w(amount date)
                  }
                ]}
@@ -30,7 +30,7 @@ defmodule GraphQLDocumentTest do
             description
             amount
           }
-          payments(after: "2021-01-01") {
+          payments(after: "2021-01-01", posted: true) {
             amount
             date
           }
