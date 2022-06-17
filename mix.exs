@@ -1,4 +1,4 @@
-defmodule GraphqlDocument.MixProject do
+defmodule GraphQLDocument.MixProject do
   use Mix.Project
 
   @version "1.0.0"
@@ -17,7 +17,7 @@ defmodule GraphqlDocument.MixProject do
       package: package(),
 
       # Docs
-      name: "GraphqlDocument",
+      name: "GraphQLDocument",
       docs: docs()
     ]
   end

@@ -1,10 +1,10 @@
-defmodule GraphqlDocument do
+defmodule GraphQLDocument do
   @moduledoc """
   A utility for building GraphQL documents. (Strings that contain a GraphQL query/mutation.)
 
   ## Syntax
 
-  `GraphqlDocument.to_string` converts nested lists/keyword lists into the analogous
+  `GraphQLDocument.to_string` converts nested lists/keyword lists into the analogous
   GraphQL syntax.
 
   Simply write lists and keyword lists "as they look in GraphQL".
@@ -21,7 +21,7 @@ defmodule GraphqlDocument do
   ]]
   ```
 
-  `GraphqlDocument.to_string/1` will take that Elixir structure and return
+  `GraphQLDocument.to_string/1` will take that Elixir structure and return
 
   ```elixir
   \"\"\"
@@ -43,7 +43,7 @@ defmodule GraphqlDocument do
   {args, fields}
   ```
 
-  For example, `GraphqlDocument.to_string/1` will take this Elixir structure
+  For example, `GraphQLDocument.to_string/1` will take this Elixir structure
 
   ```elixir
   [query: [
@@ -69,7 +69,7 @@ defmodule GraphqlDocument do
 
   #### Argument types and Enums
 
-  `GraphqlDocument.to_string/1` will translate Elixir primitives into the
+  `GraphQLDocument.to_string/1` will translate Elixir primitives into the
   analogous GraphQL primitive type for arguments.
 
   GraphQL enums can be expressed as an atom (e.g. `FOOT`) or in a tuple
@@ -157,7 +157,7 @@ defmodule GraphqlDocument do
 
   ### Example
 
-      iex> GraphqlDocument.to_string(query: [user: {[id: 3], [:name, :age, :height, documents: [:filename, :url]]}])
+      iex> GraphQLDocument.to_string(query: [user: {[id: 3], [:name, :age, :height, documents: [:filename, :url]]}])
       \"\"\"
       query {
         user(id: 3) {
@@ -223,15 +223,21 @@ defmodule GraphqlDocument do
   end
 
   def to_string(params, _indent_level) do
-    raise RuntimeError,
+    raise ArgumentError,
       message: """
-      [GraphqlDocument] Expected a list of fields but received `#{inspect(params)}`.
+      [GraphQLDocument] Expected a list of fields but received `#{inspect(params)}`.
 
       Did you forget to enclose it in a list?
       """
   end
 
-  defp argument({:enum, enum}), do: String.upcase(enum)
+  defp argument({:enum, enum}) when is_binary(enum) do
+    if valid_name?(enum) do
+      enum
+    else
+      raise ArgumentError, message: "[GraphQLDocument] Enums must be a valid GraphQL name, matching this regex: /[_A-Za-z][_0-9A-Za-z]*/"
+    end
+  end
   defp argument(%Date{} = date), do: inspect(Date.to_iso8601(date))
   defp argument(%DateTime{} = date_time), do: inspect(DateTime.to_iso8601(date_time))
   defp argument(%Time{} = time), do: inspect(Time.to_iso8601(time))
@@ -261,7 +267,21 @@ defmodule GraphqlDocument do
     end
   end
 
-  defp argument(value) do
+  defp argument(value) when is_binary(value) do
     inspect(value, printable_limit: :infinity)
+  end
+
+  defp argument(value) when is_number(value) do
+    inspect(value, printable_limit: :infinity)
+  end
+
+  defp argument(value) when is_atom(value) do
+    raise ArgumentError, message: "[GraphQLDocument] Cannot pass an atom as an argument"
+  end
+
+  # A GraphQL "Name" matches the following regex.
+  # See: http://spec.graphql.org/June2018/#sec-Names
+  defp valid_name?(name) when is_binary(name) do
+    String.match?(name, ~r/^[_A-Za-z][_0-9A-Za-z]*$/)
   end
 end
