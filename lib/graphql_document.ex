@@ -179,28 +179,22 @@ defmodule GraphQLDocument do
     indent = String.duplicate("  ", indent_level)
 
     params
-    |> Enum.map(fn
-      {field, {[] = _args, sub_fields}} ->
-        # empty arguments were passed in; remove them because `field() { subfield }` isn't valid GraphQL
-        {field, sub_fields}
-
-      {field, {%{} = args, sub_fields}} when map_size(args) == 0 ->
-        # empty arguments were passed in; remove them because `field() { subfield }` isn't valid GraphQL
-        {field, sub_fields}
-
-      field ->
-        field
-    end)
     |> Enum.map_join("\n", fn
       field when is_binary(field) or is_atom(field) ->
         "#{indent}#{field}"
 
       {field, {args, sub_fields}} when is_map(args) or is_list(args) ->
         args_string =
-          args
-          |> Enum.map_join(", ", fn {key, value} ->
-            "#{key}: #{argument(value)}"
-          end)
+          if Enum.any?(args) do
+            args_string =
+              Enum.map_join(args, ", ", fn {key, value} ->
+                "#{key}: #{argument(value)}"
+              end)
+
+            "(#{args_string})"
+          else
+            ""
+          end
 
         sub_fields_string =
           if Enum.any?(sub_fields) do
@@ -209,7 +203,7 @@ defmodule GraphQLDocument do
             ""
           end
 
-        "#{indent}#{field}(#{args_string})#{sub_fields_string}"
+        "#{indent}#{field}#{args_string}#{sub_fields_string}"
 
       {field, {args, _sub_fields}} ->
         raise "Expected a keyword list or map for args for field #{inspect(field)}, received: #{inspect(args)}"
@@ -225,8 +219,9 @@ defmodule GraphQLDocument do
   def to_string(params, _indent_level) do
     raise ArgumentError,
       message: """
-      [GraphQLDocument] Expected a list of fields but received `#{inspect(params)}`.
+      [GraphQLDocument] Expected a list of fields.
 
+      Received: `#{inspect(params)}`
       Did you forget to enclose it in a list?
       """
   end
