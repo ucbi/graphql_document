@@ -176,7 +176,10 @@ defmodule GraphQLDocumentTest do
         GraphQLDocument.to_string(
           mutation: [
             createPost: {
-              [title: "Test", category: {:enum, "MUSIC) {\n    id\n  } \n  launchRockets(when: NOW"}],
+              [
+                title: "Test",
+                category: {:enum, "MUSIC) {\n    id\n  } \n  launchRockets(when: NOW"}
+              ],
               [:id]
             }
           ]
@@ -211,6 +214,37 @@ defmodule GraphQLDocumentTest do
       expected = """
       query {
         users(ids: [1, 2, 3], filters: {status: "active"}) {
+          name
+        }
+      }\
+      """
+
+      assert result == expected
+    end
+
+    test "field aliases" do
+      result =
+        GraphQLDocument.to_string(
+          query: [
+            me: {
+              :user,
+              [id: 1],
+              [:name]
+            },
+            friend: {
+              :user,
+              [id: 2],
+              [:name]
+            }
+          ]
+        )
+
+      expected = """
+      query {
+        me: user(id: 1) {
+          name
+        }
+        friend: user(id: 2) {
           name
         }
       }\

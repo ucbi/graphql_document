@@ -150,7 +150,45 @@ defmodule GraphQLDocument do
     }
   }
   ```
+
+  ### Aliases
+
+  In order to name a field with an alias, follow the syntax below, where `me`
+  is the alias and `user` is the field:
+
+  ```elixir
+  [query: [
+    me: {
+      :user
+      [id: 100],
+      [:name, :email]
+    }
+  ]]
+  ```
+
+  Which will emit this GraphQL document:
+
+  ```elixir
+  query {
+    me: user(id: 100) {
+      name
+      email
+    }
+  }
+  ```
   """
+
+  @doc """
+  Wraps an enum string value (such as user input from a form) into a
+  `GraphQLDocument`-friendly tuple.
+
+  ### Example
+
+      iex> GraphQLDocument.enum("soundex")
+      {:enum, "soundex"}
+
+  """
+  def enum(str) when is_binary(str), do: {:enum, str}
 
   @doc """
   Generates GraphQL syntax from a nested Elixir keyword list.
@@ -183,36 +221,14 @@ defmodule GraphQLDocument do
       field when is_binary(field) or is_atom(field) ->
         "#{indent}#{field}"
 
-      {field, {args, sub_fields}} when is_map(args) or is_list(args) ->
-        args_string =
-          if Enum.any?(args) do
-            args_string =
-              Enum.map_join(args, ", ", fn {key, value} ->
-                "#{key}: #{argument(value)}"
-              end)
+      {field, sub_fields} when is_list(sub_fields) ->
+        "#{indent}#{field}#{sub_fields(sub_fields, indent, indent_level)}"
 
-            "(#{args_string})"
-          else
-            ""
-          end
+      {field, {args, sub_fields}} ->
+        "#{indent}#{field}#{args(args)}#{sub_fields(sub_fields, indent, indent_level)}"
 
-        sub_fields_string =
-          if Enum.any?(sub_fields) do
-            " {\n#{to_string(sub_fields, indent_level + 1)}\n#{indent}}"
-          else
-            ""
-          end
-
-        "#{indent}#{field}#{args_string}#{sub_fields_string}"
-
-      {field, {args, _sub_fields}} ->
-        raise "Expected a keyword list or map for args for field #{inspect(field)}, received: #{inspect(args)}"
-
-      {field, [] = _sub_fields} ->
-        "#{indent}#{field}"
-
-      {field, sub_fields} ->
-        "#{indent}#{field} {\n#{to_string(sub_fields, indent_level + 1)}\n#{indent}}"
+      {field_alias, {field, args, sub_fields}} when is_map(args) or is_list(args) ->
+        "#{indent}#{field_alias}: #{field}#{args(args)}#{sub_fields(sub_fields, indent, indent_level)}"
     end)
   end
 
@@ -224,6 +240,31 @@ defmodule GraphQLDocument do
       Received: `#{inspect(params)}`
       Did you forget to enclose it in a list?
       """
+  end
+
+  defp args(args) do
+    unless is_map(args) or is_list(args) do
+      raise "Expected a keyword list or map for args, received: #{inspect(args)}"
+    end
+
+    if Enum.any?(args) do
+      args_string =
+        Enum.map_join(args, ", ", fn {key, value} ->
+          "#{key}: #{argument(value)}"
+        end)
+
+      "(#{args_string})"
+    else
+      ""
+    end
+  end
+
+  defp sub_fields(sub_fields, indent, indent_level) do
+    if Enum.any?(sub_fields) do
+      " {\n#{to_string(sub_fields, indent_level + 1)}\n#{indent}}"
+    else
+      ""
+    end
   end
 
   defp argument(%Date{} = date), do: inspect(Date.to_iso8601(date))
@@ -241,7 +282,9 @@ defmodule GraphQLDocument do
     if valid_name?(enum) do
       enum
     else
-      raise ArgumentError, message: "[GraphQLDocument] Enums must be a valid GraphQL name, matching this regex: /[_A-Za-z][_0-9A-Za-z]*/"
+      raise ArgumentError,
+        message:
+          "[GraphQLDocument] Enums must be a valid GraphQL name, matching this regex: /[_A-Za-z][_0-9A-Za-z]*/"
     end
   end
 
