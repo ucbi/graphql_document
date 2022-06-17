@@ -30,7 +30,7 @@ defmodule GraphQLDocument.MixProject do
 
   defp package do
     %{
-      licenses: ["MIT"],
+      licenses: ["Apache-2.0"],
       links: %{
         GitHub: @source_url
       }
