@@ -8,7 +8,7 @@ Build [GraphQL](https://graphql.org/) document strings from Elixir primitives.
 
 ## Better DX for internal GraphQL queries
 
-The goal of this package is to improve the developer experience of
+The goal of GraphQLDocument is to improve the developer experience of
 making GraphQL calls in Elixir by calling directly into GraphQL libraries such
 as [Absinthe](https://hex.pm/packages/absinthe) without making API calls.
 
@@ -27,7 +27,7 @@ Add `:graphql_document` as a dependency in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:graphql_document, "~> 1.0.0"}
+    {:graphql_document, "~> 0.1.0"}
   ]
 end
 ```
