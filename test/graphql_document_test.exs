@@ -6,19 +6,17 @@ defmodule GraphQLDocumentTest do
     test "builds a GraphQL syntax string from an Elixir data structure" do
       result =
         GraphQLDocument.to_string(
-          query: [
-            invoices:
-              {[customer: "123456"],
-               [
-                 :id,
-                 :total,
-                 items: ~w(description amount),
-                 payments: {
-                   [after: "2021-01-01", posted: true],
-                   ~w(amount date)
-                 }
-               ]}
-          ]
+          invoices:
+            {[customer: "123456"],
+             [
+               :id,
+               :total,
+               items: ~w(description amount),
+               payments: {
+                 [after: "2021-01-01", posted: true],
+                 ~w(amount date)
+               }
+             ]}
         )
 
       expected = """
@@ -44,9 +42,8 @@ defmodule GraphQLDocumentTest do
     test "it's possible to build a query for a mutation that returns a scalar rather than an object" do
       result =
         GraphQLDocument.to_string(
-          mutation: [
-            launch_rockets: {[where: "outer space"], []}
-          ]
+          :mutation,
+          launch_rockets: {[where: "outer space"], []}
         )
 
       expected = """
@@ -59,20 +56,19 @@ defmodule GraphQLDocumentTest do
 
       result =
         GraphQLDocument.to_string(
-          query: [
-            getThings: {
-              [
-                zip: "123",
-                test: %{
-                  "bar" => "ASDF",
-                  "nested" => %{
-                    baz: "bazzz"
-                  }
+          :query,
+          getThings: {
+            [
+              zip: "123",
+              test: %{
+                "bar" => "ASDF",
+                "nested" => %{
+                  baz: "bazzz"
                 }
-              ],
-              [:city]
-            }
-          ]
+              }
+            ],
+            [:city]
+          }
         )
 
       expected = """
@@ -89,12 +85,11 @@ defmodule GraphQLDocumentTest do
     test "nested arguments are supported" do
       result =
         GraphQLDocument.to_string(
-          mutation: [
-            launch_rockets: {
-              [when: %{day: "tomorrow", time: [hour: 9, minute: 3, second: 30]}],
-              [:status]
-            }
-          ]
+          :mutation,
+          launch_rockets: {
+            [when: %{day: "tomorrow", time: [hour: 9, minute: 3, second: 30]}],
+            [:status]
+          }
         )
 
       expected = """
@@ -110,9 +105,7 @@ defmodule GraphQLDocumentTest do
 
     test "empty args" do
       result =
-        GraphQLDocument.to_string(
-          query: [{"app_stats", {[], [:registrations, :logins, :complaints]}}]
-        )
+        GraphQLDocument.to_string([{"app_stats", {[], [:registrations, :logins, :complaints]}}])
 
       expected = """
       query {
@@ -128,7 +121,7 @@ defmodule GraphQLDocumentTest do
     end
 
     test "return values that are an empty list are ignored" do
-      result = GraphQLDocument.to_string(mutation: [launch_rockets: {[when: "now"], []}])
+      result = GraphQLDocument.to_string(:mutation, launch_rockets: {[when: "now"], []})
 
       expected = """
       mutation {
@@ -138,7 +131,7 @@ defmodule GraphQLDocumentTest do
 
       assert result == expected
 
-      result = GraphQLDocument.to_string(mutation: [launch_rockets: {[], []}])
+      result = GraphQLDocument.to_string(:mutation, launch_rockets: {[], []})
 
       expected = """
       mutation {
@@ -152,12 +145,10 @@ defmodule GraphQLDocumentTest do
     test "pass enum argument as an {:enum, string} tuple" do
       result =
         GraphQLDocument.to_string(
-          query: [
-            get_rockets: {
-              [rocket_type: {:enum, "MASSIVE"}],
-              [:status]
-            }
-          ]
+          get_rockets: {
+            [rocket_type: {:enum, "MASSIVE"}],
+            [:status]
+          }
         )
 
       expected = """
@@ -174,15 +165,14 @@ defmodule GraphQLDocumentTest do
     test "query injection is not possible via enums" do
       assert_raise ArgumentError, fn ->
         GraphQLDocument.to_string(
-          mutation: [
-            createPost: {
-              [
-                title: "Test",
-                category: {:enum, "MUSIC) {\n    id\n  } \n  launchRockets(when: NOW"}
-              ],
-              [:id]
-            }
-          ]
+          :mutation,
+          createPost: {
+            [
+              title: "Test",
+              category: {:enum, "MUSIC) {\n    id\n  } \n  launchRockets(when: NOW"}
+            ],
+            [:id]
+          }
         )
       end
     end
@@ -190,12 +180,11 @@ defmodule GraphQLDocumentTest do
     test "cannot pass atoms as arguments" do
       assert_raise ArgumentError, fn ->
         GraphQLDocument.to_string(
-          query: [
-            posts: {
-              [category: MUSIC],
-              [:id, :title]
-            }
-          ]
+          :query,
+          posts: {
+            [category: MUSIC],
+            [:id, :title]
+          }
         )
       end
     end
@@ -203,12 +192,10 @@ defmodule GraphQLDocumentTest do
     test "list and object arguments" do
       result =
         GraphQLDocument.to_string(
-          query: [
-            users: {
-              [ids: [1, 2, 3], filters: [status: "active"]],
-              [:name]
-            }
-          ]
+          users: {
+            [ids: [1, 2, 3], filters: [status: "active"]],
+            [:name]
+          }
         )
 
       expected = """
@@ -225,18 +212,16 @@ defmodule GraphQLDocumentTest do
     test "field aliases" do
       result =
         GraphQLDocument.to_string(
-          query: [
-            me: {
-              :user,
-              [id: 1],
-              [:name]
-            },
-            friend: {
-              :user,
-              [id: 2],
-              [:name]
-            }
-          ]
+          me: {
+            :user,
+            [id: 1],
+            [:name]
+          },
+          friend: {
+            :user,
+            [id: 2],
+            [:name]
+          }
         )
 
       expected = """

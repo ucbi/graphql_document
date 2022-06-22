@@ -178,6 +178,51 @@ defmodule GraphQLDocument do
   ```
   """
 
+  @type operation_type :: :query | :mutation | :subscription
+
+  @typedoc """
+  A GraphQL name. Must start with a letter or underscore. May contain letters, underscores, and digits.
+
+  See: http://spec.graphql.org/October2021/#Name
+  """
+  @type name :: atom | String.t()
+
+  @typedoc """
+  A field describes one discrete piece of information available to request within a selection set.
+
+  See: http://spec.graphql.org/October2021/#Field
+  """
+  @type field :: name | {name, [field]} | {name, {[argument], selection_set}}
+
+  @typedoc """
+  A GraphQL argument.
+
+  See: http://spec.graphql.org/October2021/#Argument
+  """
+  @type argument :: {name, value}
+
+  @typedoc """
+  A value in GraphQL can be a number, string, boolean, null, an Enum, or a List or Object.
+
+  See: http://spec.graphql.org/October2021/#Value
+  """
+  @type value ::
+          integer
+          | float
+          | String.t()
+          | boolean
+          | nil
+          | {:enum, String.t()}
+          | [value]
+          | %{optional(atom) => value}
+
+  @typedoc """
+  A SelectionSet defines the set of fields in an object to be returned.
+
+  See: http://spec.graphql.org/October2021/#SelectionSet
+  """
+  @type selection_set :: [field]
+
   @doc """
   Wraps an enum string value (such as user input from a form) into a
   `GraphQLDocument`-friendly tuple.
@@ -195,7 +240,7 @@ defmodule GraphQLDocument do
 
   ### Example
 
-      iex> GraphQLDocument.to_string(query: [user: {[id: 3], [:name, :age, :height, documents: [:filename, :url]]}])
+      iex> GraphQLDocument.to_string(:query, [user: {[id: 3], [:name, :age, :height, documents: [:filename, :url]]}])
       \"\"\"
       query {
         user(id: 3) {
@@ -211,9 +256,28 @@ defmodule GraphQLDocument do
       \"\"\"
 
   """
-  def to_string(params, indent_level \\ 0)
+  @spec to_string(operation_type, selection_set) :: String.t()
+  def to_string(operation_type \\ :query, params) do
+    if operation_type not in [:query, :mutation, :subscription] do
+      raise ArgumentError,
+        message:
+          "[GraphQLDocument] operation_type must be :query, :mutation, or :subscription. Received #{operation_type}"
+    end
 
-  def to_string(params, indent_level) when is_list(params) or is_map(params) do
+    unless is_list(params) or is_map(params) do
+      raise ArgumentError,
+        message: """
+        [GraphQLDocument] Expected a list of fields.
+
+        Received: `#{inspect(params)}`
+        Did you forget to enclose it in a list?
+        """
+    end
+
+    selection_set_to_string([{operation_type, params}], 0)
+  end
+
+  def selection_set_to_string(params, indent_level) when is_list(params) or is_map(params) do
     indent = String.duplicate("  ", indent_level)
 
     params
@@ -232,7 +296,7 @@ defmodule GraphQLDocument do
     end)
   end
 
-  def to_string(params, _indent_level) do
+  def selection_set_to_string(params, _indent_level) do
     raise ArgumentError,
       message: """
       [GraphQLDocument] Expected a list of fields.
@@ -261,7 +325,7 @@ defmodule GraphQLDocument do
 
   defp sub_fields(sub_fields, indent, indent_level) do
     if Enum.any?(sub_fields) do
-      " {\n#{to_string(sub_fields, indent_level + 1)}\n#{indent}}"
+      " {\n#{selection_set_to_string(sub_fields, indent_level + 1)}\n#{indent}}"
     else
       ""
     end
