@@ -178,7 +178,46 @@ defmodule GraphQLDocument do
   ```
   """
 
+  @typedoc "See: http://spec.graphql.org/October2021/#OperationType"
   @type operation_type :: :query | :mutation | :subscription
+
+  @typedoc "Options that can be passed along with the operation."
+  @type operation_option :: {:variables, [variable_definition]}
+
+  @typedoc """
+  The definition of a variable; goes alongside the `t:operation_type` in the document.
+
+  This is not the _usage_ of the variable (injecting it into an arg somewhere)
+  but rather defining its name and type.
+
+  ### Examples
+
+      yearOfBirth: Int
+      myId: {Int, null: false}
+      status: {String, default: "active"}
+      daysOfWeek: [String]
+      daysOfWeek: {[String], default: ["Saturday", "Sunday"]}
+  """
+  @type variable_definition :: {name, type | {type, [variable_definition_opt]}}
+
+  @typedoc """
+  Options that can be passed when defining a variable.
+
+    - `default` sets the default value. (Pass any `t:value/0`)
+    - `null: false` makes it a non-nullable (required) variable.
+
+  """
+  @type variable_definition_opt :: {:default, value} | {:null, boolean}
+
+  @typedoc "A usage of a defined variable within an operation"
+  @type variable :: {:var, name}
+
+  @typedoc """
+  A GraphQL Type.
+
+  See: http://spec.graphql.org/October2021/#Type
+  """
+  @type type :: name | [type]
 
   @typedoc """
   A GraphQL name. Must start with a letter or underscore. May contain letters, underscores, and digits.
@@ -215,6 +254,7 @@ defmodule GraphQLDocument do
           | {:enum, String.t()}
           | [value]
           | %{optional(atom) => value}
+          | variable
 
   @typedoc """
   A SelectionSet defines the set of fields in an object to be returned.
@@ -229,11 +269,22 @@ defmodule GraphQLDocument do
 
   ### Example
 
-      iex> GraphQLDocument.enum("soundex")
+      iex> enum("soundex")
       {:enum, "soundex"}
 
   """
   def enum(str) when is_binary(str), do: {:enum, str}
+
+  @doc """
+  Wraps a variable name into a `GraphQLDocument`-friendly tuple.
+
+  ### Example
+
+      iex> var(:foo)
+      {:var, :foo}
+
+  """
+  def var(name) when is_binary(name) or is_atom(name), do: {:var, name}
 
   @doc """
   Generates GraphQL syntax from a nested Elixir keyword list.
@@ -256,8 +307,8 @@ defmodule GraphQLDocument do
       \"\"\"
 
   """
-  @spec to_string(operation_type, selection_set) :: String.t()
-  def to_string(operation_type \\ :query, params) do
+  @spec to_string(operation_type, selection_set, [operation_option]) :: String.t()
+  def to_string(operation_type \\ :query, params, opts \\ []) do
     if operation_type not in [:query, :mutation, :subscription] do
       raise ArgumentError,
         message:
@@ -274,7 +325,23 @@ defmodule GraphQLDocument do
         """
     end
 
-    selection_set_to_string([{operation_type, params}], 0)
+    variables = Keyword.get(opts, :variables, [])
+
+    selection_set_to_string(
+      [
+        {
+          operation_type,
+          {variables_to_args(variables), params}
+        }
+      ],
+      0
+    )
+  end
+
+  defp variables_to_args(variables) when is_list(variables) do
+    for {name, type} <- variables do
+      {"$#{valid_name!(name)}", {:type, type}}
+    end
   end
 
   def selection_set_to_string(params, indent_level) when is_list(params) or is_map(params) do
@@ -342,14 +409,47 @@ defmodule GraphQLDocument do
     defp argument(%Decimal{} = decimal), do: Decimal.to_string(decimal)
   end
 
-  defp argument({:enum, enum}) when is_binary(enum) do
-    if valid_name?(enum) do
-      enum
-    else
-      raise ArgumentError,
-        message:
-          "[GraphQLDocument] Enums must be a valid GraphQL name, matching this regex: /[_A-Za-z][_0-9A-Za-z]*/"
-    end
+  defp argument({:enum, enum}) do
+    valid_name!(enum)
+  end
+
+  defp argument({:var, var}) do
+    "$#{valid_name!(var)}"
+  end
+
+  defp argument({:type, type}) do
+    {type, opts} =
+      case type do
+        {type, opts} -> {type, opts}
+        type -> {type, []}
+      end
+
+    {type, is_list} =
+      case type do
+        [type] -> {type, true}
+        type -> {type, false}
+      end
+
+    required =
+      if Keyword.get(opts, :null) == false do
+        "!"
+      end
+
+    default =
+      if default = Keyword.get(opts, :default) do
+        " = #{argument(default)}"
+      end
+
+    type = valid_name!(type)
+
+    rendered_type =
+      if is_list do
+        "[#{type}]"
+      else
+        Kernel.to_string(type)
+      end
+
+    "#{rendered_type}#{required}#{default}"
   end
 
   defp argument([]), do: "[]"
@@ -391,5 +491,25 @@ defmodule GraphQLDocument do
   # See: http://spec.graphql.org/June2018/#sec-Names
   defp valid_name?(name) when is_binary(name) do
     String.match?(name, ~r/^[_A-Za-z][_0-9A-Za-z]*$/)
+  end
+
+  # A GraphQL "Name" matches the following regex.
+  # See: http://spec.graphql.org/June2018/#sec-Names
+  @spec valid_name!(atom | String.t()) :: String.t()
+  defp valid_name!(name) when is_binary(name) do
+    if valid_name?(name) do
+      name
+    else
+      raise ArgumentError,
+        message:
+          "[GraphQLDocument] Names must be a valid GraphQL name, matching this regex: /[_A-Za-z][_0-9A-Za-z]*/ (received #{name})"
+    end
+  end
+
+  defp valid_name!(atom) when is_atom(atom) do
+    case Kernel.to_string(atom) do
+      "Elixir." <> _ -> valid_name!(Macro.to_string(atom))
+      string -> valid_name!(string)
+    end
   end
 end
