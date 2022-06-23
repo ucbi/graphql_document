@@ -188,7 +188,7 @@ defmodule GraphQLDocument do
   @type type :: Name.t() | [type]
 
   @doc """
-  Wraps an enum string value (such as user input from a form) into a
+  Wraps an enum string value (such as user input from a form) in a
   `GraphQLDocument`-friendly tuple.
 
   ### Example
@@ -200,7 +200,7 @@ defmodule GraphQLDocument do
   def enum(str) when is_binary(str), do: {:enum, str}
 
   @doc """
-  Wraps a variable name into a `GraphQLDocument`-friendly tuple.
+  Wraps a variable name in a `GraphQLDocument`-friendly tuple.
 
   ### Example
 
@@ -209,6 +209,32 @@ defmodule GraphQLDocument do
 
   """
   def var(name) when is_binary(name) or is_atom(name), do: {:var, name}
+
+  @doc """
+  Wraps a fragment spread in `GraphQLDocument`-friendly tuple.
+
+  TODO: Document usage with directives.
+
+  ### Example
+
+      iex> fragment(:foo)
+      {:__fragment__, :foo}
+
+  """
+  def fragment(name) when is_binary(name) or is_atom(name), do: {:__fragment__, name}
+
+  @doc """
+  Wraps an inline fragment in `GraphQLDocument`-friendly tuple.
+
+  TODO: Document usage with directives.
+
+  ### Example
+
+      iex> inline_fragment({User, [:name, :email]})
+      {:__inline_fragment__, {User, [:name, :email]}}
+
+  """
+  def inline_fragment(inline), do: {:__inline_fragment__, inline}
 
   def query(selection, opts \\ []) do
     operation(:query, selection, opts)

@@ -1,6 +1,7 @@
 defmodule GraphQLDocumentTest do
   use ExUnit.Case
   doctest GraphQLDocument, import: true
+  import GraphQLDocument
 
   describe "operation/1" do
     test "builds a GraphQL syntax string from an Elixir data structure" do
@@ -287,6 +288,50 @@ defmodule GraphQLDocumentTest do
       expected = """
       query ($someTest: Boolean!) @debug @log(level: "warning") {
         experimentalField @skip(if: $someTest)
+      }\
+      """
+
+      assert result == expected
+    end
+
+    test "fragments" do
+      result =
+        GraphQLDocument.operation(
+          :query,
+          [
+            user:
+              {[id: 4],
+               [
+                 inline_fragment({User, [skip: [if: true]], [:password, :passwordHash]}),
+                 friends: {[first: 10], [fragment(:friendFields)]},
+                 mutualFriends: {[first: 10], [fragment(:friendFields)]}
+               ]}
+          ],
+          fragments: [
+            friendFields: {:User, [:id, :name, profilePic: {[size: 50], []}]}
+          ]
+        )
+
+      expected = """
+      query {
+        user(id: 4) {
+          ... on User @skip(if: true) {
+            password
+            passwordHash
+          }
+          friends(first: 10) {
+            ...friendFields
+          }
+          mutualFriends(first: 10) {
+            ...friendFields
+          }
+        }
+      }
+
+      fragment friendFields on User {
+        id
+        name
+        profilePic(size: 50)
       }\
       """
 
