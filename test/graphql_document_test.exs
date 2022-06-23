@@ -280,11 +280,12 @@ defmodule GraphQLDocumentTest do
         GraphQLDocument.operation(
           :query,
           [experimentalField: {[], [skip: [if: {:var, :someTest}]], []}],
-          variables: [someTest: {Boolean, null: false}]
+          variables: [someTest: {Boolean, null: false}],
+          directives: [:debug, log: [level: "warning"]]
         )
 
       expected = """
-      query ($someTest: Boolean!) {
+      query ($someTest: Boolean!) @debug @log(level: "warning") {
         experimentalField @skip(if: $someTest)
       }\
       """

@@ -1,11 +1,11 @@
 defmodule GraphQLDocument.Operation do
-  alias GraphQLDocument.{Name, SelectionSet, Value}
+  alias GraphQLDocument.{Directive, Name, SelectionSet, Value}
 
   @typedoc "See: http://spec.graphql.org/October2021/#OperationType"
   @type operation_type :: :query | :mutation | :subscription
 
   @typedoc "Options that can be passed along with the operation."
-  @type operation_option :: {:variables, [variable_definition]}
+  @type operation_option :: {:variables, [variable_definition]} | {:directives, [Directive.t()]}
 
   @typedoc """
   The definition of a variable; goes alongside the `t:operation_type` in the document.
@@ -74,8 +74,9 @@ defmodule GraphQLDocument.Operation do
     end
 
     variables = Keyword.get(opts, :variables, [])
+    directives = Keyword.get(opts, :directives, [])
 
-    "#{operation_type}#{render_variables(variables)}#{SelectionSet.render(selection, 1)}"
+    "#{operation_type}#{render_variables(variables)}#{Directive.render(directives)}#{SelectionSet.render(selection, 1)}"
   end
 
   defp render_variables(variables) when is_list(variables) do
