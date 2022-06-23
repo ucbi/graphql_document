@@ -178,6 +178,8 @@ defmodule GraphQLDocument do
   ```
   """
 
+  alias GraphQLDocument.{Name, SelectionSet}
+
   @typedoc "See: http://spec.graphql.org/October2021/#OperationType"
   @type operation_type :: :query | :mutation | :subscription
 
@@ -198,7 +200,7 @@ defmodule GraphQLDocument do
       daysOfWeek: [String]
       daysOfWeek: {[String], default: ["Saturday", "Sunday"]}
   """
-  @type variable_definition :: {name, type | {type, [variable_definition_opt]}}
+  @type variable_definition :: {Name.t(), type | {type, [variable_definition_opt]}}
 
   @typedoc """
   Options that can be passed when defining a variable.
@@ -210,35 +212,14 @@ defmodule GraphQLDocument do
   @type variable_definition_opt :: {:default, value} | {:null, boolean}
 
   @typedoc "A usage of a defined variable within an operation"
-  @type variable :: {:var, name}
+  @type variable :: {:var, Name.t()}
 
   @typedoc """
   A GraphQL Type.
 
   See: http://spec.graphql.org/October2021/#Type
   """
-  @type type :: name | [type]
-
-  @typedoc """
-  A GraphQL name. Must start with a letter or underscore. May contain letters, underscores, and digits.
-
-  See: http://spec.graphql.org/October2021/#Name
-  """
-  @type name :: atom | String.t()
-
-  @typedoc """
-  A field describes one discrete piece of information available to request within a selection set.
-
-  See: http://spec.graphql.org/October2021/#Field
-  """
-  @type field :: name | {name, [field]} | {name, {[argument], selection_set}}
-
-  @typedoc """
-  A GraphQL argument.
-
-  See: http://spec.graphql.org/October2021/#Argument
-  """
-  @type argument :: {name, value}
+  @type type :: Name.t() | [type]
 
   @typedoc """
   A value in GraphQL can be a number, string, boolean, null, an Enum, or a List or Object.
@@ -255,13 +236,6 @@ defmodule GraphQLDocument do
           | [value]
           | %{optional(atom) => value}
           | variable
-
-  @typedoc """
-  A SelectionSet defines the set of fields in an object to be returned.
-
-  See: http://spec.graphql.org/October2021/#SelectionSet
-  """
-  @type selection_set :: [field]
 
   @doc """
   Wraps an enum string value (such as user input from a form) into a
@@ -307,7 +281,7 @@ defmodule GraphQLDocument do
       \"\"\"
 
   """
-  @spec to_string(operation_type, selection_set, [operation_option]) :: String.t()
+  @spec to_string(operation_type, SelectionSet.t(), [operation_option]) :: String.t()
   def to_string(operation_type \\ :query, params, opts \\ []) do
     if operation_type not in [:query, :mutation, :subscription] do
       raise ArgumentError,
@@ -327,7 +301,7 @@ defmodule GraphQLDocument do
 
     variables = Keyword.get(opts, :variables, [])
 
-    selection_set_to_string(
+    SelectionSet.render(
       [
         {
           operation_type,
@@ -340,176 +314,7 @@ defmodule GraphQLDocument do
 
   defp variables_to_args(variables) when is_list(variables) do
     for {name, type} <- variables do
-      {"$#{valid_name!(name)}", {:type, type}}
-    end
-  end
-
-  def selection_set_to_string(params, indent_level) when is_list(params) or is_map(params) do
-    indent = String.duplicate("  ", indent_level)
-
-    params
-    |> Enum.map_join("\n", fn
-      field when is_binary(field) or is_atom(field) ->
-        "#{indent}#{field}"
-
-      {field, sub_fields} when is_list(sub_fields) ->
-        "#{indent}#{field}#{sub_fields(sub_fields, indent, indent_level)}"
-
-      {field, {args, sub_fields}} ->
-        "#{indent}#{field}#{args(args)}#{sub_fields(sub_fields, indent, indent_level)}"
-
-      {field_alias, {field, args, sub_fields}} when is_map(args) or is_list(args) ->
-        "#{indent}#{field_alias}: #{field}#{args(args)}#{sub_fields(sub_fields, indent, indent_level)}"
-    end)
-  end
-
-  def selection_set_to_string(params, _indent_level) do
-    raise ArgumentError,
-      message: """
-      [GraphQLDocument] Expected a list of fields.
-
-      Received: `#{inspect(params)}`
-      Did you forget to enclose it in a list?
-      """
-  end
-
-  defp args(args) do
-    unless is_map(args) or is_list(args) do
-      raise "Expected a keyword list or map for args, received: #{inspect(args)}"
-    end
-
-    if Enum.any?(args) do
-      args_string =
-        Enum.map_join(args, ", ", fn {key, value} ->
-          "#{key}: #{argument(value)}"
-        end)
-
-      "(#{args_string})"
-    else
-      ""
-    end
-  end
-
-  defp sub_fields(sub_fields, indent, indent_level) do
-    if Enum.any?(sub_fields) do
-      " {\n#{selection_set_to_string(sub_fields, indent_level + 1)}\n#{indent}}"
-    else
-      ""
-    end
-  end
-
-  defp argument(%Date{} = date), do: inspect(Date.to_iso8601(date))
-  defp argument(%DateTime{} = date_time), do: inspect(DateTime.to_iso8601(date_time))
-  defp argument(%Time{} = time), do: inspect(Time.to_iso8601(time))
-
-  defp argument(%NaiveDateTime{} = naive_date_time),
-    do: inspect(NaiveDateTime.to_iso8601(naive_date_time))
-
-  if Code.ensure_loaded?(Decimal) do
-    defp argument(%Decimal{} = decimal), do: Decimal.to_string(decimal)
-  end
-
-  defp argument({:enum, enum}) do
-    valid_name!(enum)
-  end
-
-  defp argument({:var, var}) do
-    "$#{valid_name!(var)}"
-  end
-
-  defp argument({:type, type}) do
-    {type, opts} =
-      case type do
-        {type, opts} -> {type, opts}
-        type -> {type, []}
-      end
-
-    {type, is_list} =
-      case type do
-        [type] -> {type, true}
-        type -> {type, false}
-      end
-
-    required =
-      if Keyword.get(opts, :null) == false do
-        "!"
-      end
-
-    default =
-      if default = Keyword.get(opts, :default) do
-        " = #{argument(default)}"
-      end
-
-    type = valid_name!(type)
-
-    rendered_type =
-      if is_list do
-        "[#{type}]"
-      else
-        Kernel.to_string(type)
-      end
-
-    "#{rendered_type}#{required}#{default}"
-  end
-
-  defp argument([]), do: "[]"
-
-  defp argument(enum) when is_list(enum) or is_map(enum) do
-    if is_map(enum) || Keyword.keyword?(enum) do
-      nested_arguments =
-        enum
-        |> Enum.map_join(", ", fn {key, value} -> "#{key}: #{argument(value)}" end)
-
-      "{#{nested_arguments}}"
-    else
-      nested_arguments =
-        enum
-        |> Enum.map_join(", ", &"#{argument(&1)}")
-
-      "[#{nested_arguments}]"
-    end
-  end
-
-  defp argument(value) when is_binary(value) do
-    inspect(value, printable_limit: :infinity)
-  end
-
-  defp argument(value) when is_number(value) do
-    inspect(value, printable_limit: :infinity)
-  end
-
-  defp argument(value) when is_boolean(value) do
-    inspect(value)
-  end
-
-  defp argument(value) when is_atom(value) do
-    raise ArgumentError,
-      message: "[GraphQLDocument] Cannot pass an atom as an argument; received `#{value}`"
-  end
-
-  # A GraphQL "Name" matches the following regex.
-  # See: http://spec.graphql.org/June2018/#sec-Names
-  defp valid_name?(name) when is_binary(name) do
-    String.match?(name, ~r/^[_A-Za-z][_0-9A-Za-z]*$/)
-  end
-
-  # A GraphQL "Name" matches the following regex.
-  # See: http://spec.graphql.org/June2018/#sec-Names
-  @spec valid_name!(atom | String.t()) :: String.t()
-  defp valid_name!(name) when is_binary(name) do
-    if valid_name?(name) do
-      name
-    else
-      raise ArgumentError,
-        message:
-          "[GraphQLDocument] Names must be a valid GraphQL name, matching this regex: /[_A-Za-z][_0-9A-Za-z]*/ (received #{name})"
-    end
-  end
-
-  defp valid_name!(atom) when is_atom(atom) do
-    case Kernel.to_string(atom) do
-      "Elixir." <> _ -> valid_name!(Macro.to_string(atom))
-      string -> valid_name!(string)
+      {"$#{Name.valid_name!(name)}", {:type, type}}
     end
   end
 end
