@@ -34,7 +34,7 @@ defmodule GraphQLDocument.Value do
       iex> render(~N[2019-11-12T10:30:25])
       "\\"2019-11-12T10:30:25\\""
 
-      iex> render(DateTime.new!(~D[2019-11-12], ~T[10:30:25]))
+      iex> render(DateTime.from_naive!(~N[2019-11-12T10:30:25], "Etc/UTC"))
       "\\"2019-11-12T10:30:25Z\\""
 
       iex> render({:enum, Jedi})
