@@ -292,5 +292,44 @@ defmodule GraphQLDocumentTest do
 
       assert result == expected
     end
+
+    test "fragments" do
+      result =
+        GraphQLDocument.operation(
+          :query,
+          [
+            user:
+              {[id: 4],
+               [
+                 friends: {[first: 10], [:friendFields]},
+                 mutualFriends: {[first: 10], [:friendFields]}
+               ]}
+          ],
+          fragments: [
+            friendFields: {:User, [:id, :name, profilePic: {[size: 50], []}]}
+          ]
+        )
+
+      expected = """
+      query {
+        user(id: 4) {
+          friends(first: 10) {
+            ...friendFields
+          }
+          mutualFriends(first: 10) {
+            ...friendFields
+          }
+        }
+      }
+
+      fragment friendFields on User {
+        id
+        name
+        profilePic(size: 50)
+      }\
+      """
+
+      assert result == expected
+    end
   end
 end
