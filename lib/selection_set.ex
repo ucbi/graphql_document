@@ -1,5 +1,5 @@
 defmodule GraphQLDocument.SelectionSet do
-  alias GraphQLDocument.{Argument, Directive, Name}
+  alias GraphQLDocument.{Argument, Directive, Fragment, Name}
 
   @typedoc """
   A SelectionSet defines the set of fields in an object to be returned.
@@ -22,6 +22,15 @@ defmodule GraphQLDocument.SelectionSet do
       Enum.map_join(selection, "\n", fn
         field when is_binary(field) or is_atom(field) ->
           "#{indent}#{field}"
+
+        {:__fragment__, fragment} ->
+          {name, directives} =
+            case fragment do
+              {name, directives} -> {name, directives}
+              name -> {name, []}
+            end
+
+          "#{indent}#{Fragment.render_spread(name, directives)}"
 
         {field, sub_fields} when is_list(sub_fields) ->
           "#{indent}#{field}#{render(sub_fields, indent_level + 1)}"

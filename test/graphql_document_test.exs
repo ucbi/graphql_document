@@ -1,6 +1,7 @@
 defmodule GraphQLDocumentTest do
   use ExUnit.Case
   doctest GraphQLDocument, import: true
+  import GraphQLDocument
 
   describe "operation/1" do
     test "builds a GraphQL syntax string from an Elixir data structure" do
@@ -301,8 +302,8 @@ defmodule GraphQLDocumentTest do
             user:
               {[id: 4],
                [
-                 friends: {[first: 10], [:friendFields]},
-                 mutualFriends: {[first: 10], [:friendFields]}
+                 friends: {[first: 10], [fragment(:friendFields)]},
+                 mutualFriends: {[first: 10], [fragment(:friendFields)]}
                ]}
           ],
           fragments: [
