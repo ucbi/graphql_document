@@ -8,7 +8,15 @@ defmodule GraphQLDocument.Directive do
   """
   @type t :: Name.t() | {Name.t(), [Argument.t()]}
 
-  @doc "Render a list of directives"
+  @doc """
+  Return a list of directives as iodata to be rendered in a GraphQL document.
+
+  ### Examples
+
+      iex> render([log: [level: "warn"]]) |> IO.iodata_to_binary()
+      " @log(level: \\"warn\\")"
+
+  """
   @spec render([Directive.t()]) :: iolist
   def render(directives) do
     unless is_map(directives) or is_list(directives) do

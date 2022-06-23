@@ -15,8 +15,63 @@ defmodule GraphQLDocument.SelectionSet do
   """
   @type field :: Name.t() | {Name.t(), [field]} | {Name.t(), {[Argument.t()], t}}
 
+  @doc ~S'''
+  Return a SelectionSet as iodata to be rendered in a GraphQL document.
+
+  ### Examples
+
+      iex> render([lightsaber: [:color, :style]], 1) |> IO.iodata_to_binary()
+      """
+       {
+        lightsaber {
+          color
+          style
+        }
+      }\
+      """
+
+      iex> render(
+      ...>   [
+      ...>     invoices: {
+      ...>       [customer: "123456"],
+      ...>       [
+      ...>         :id,
+      ...>         :total,
+      ...>         items: ~w(description amount),
+      ...>         payments: {[after: "2021-01-01", posted: true], ~w(amount date)}
+      ...>       ]
+      ...>     }
+      ...>   ],
+      ...>   1
+      ...> )
+      ...> |> IO.iodata_to_binary()
+      """
+       {
+        invoices(customer: \"123456\") {
+          id
+          total
+          items {
+            description
+            amount
+          }
+          payments(after: \"2021-01-01\", posted: true) {
+            amount
+            date
+          }
+        }
+      }\
+      """
+
+      iex> render([foo: :bar], 1)
+      ** (ArgumentError) Expected a selection; received {:foo, :bar}
+
+      iex> render([foo: [:bar]], 0)
+      ** (ArgumentError) indent_level must be at least 1; received 0
+
+  '''
   @spec render(t, integer) :: iolist
-  def render(selection, indent_level) when is_list(selection) or is_map(selection) do
+  def render(selection, indent_level)
+      when (is_list(selection) or is_map(selection)) and indent_level > 0 do
     indent = List.duplicate("  ", indent_level)
 
     rendered =
@@ -106,6 +161,9 @@ defmodule GraphQLDocument.SelectionSet do
             Directive.render(directives),
             render(sub_fields, indent_level + 1)
           ]
+
+        mismatch ->
+          raise ArgumentError, message: "Expected a selection; received #{inspect(mismatch)}"
       end)
 
     if Enum.any?(selection) do
@@ -123,10 +181,15 @@ defmodule GraphQLDocument.SelectionSet do
     end
   end
 
+  def render(_selection, indent_level) when indent_level < 1 do
+    raise ArgumentError,
+      message: "indent_level must be at least 1; received #{inspect(indent_level)}"
+  end
+
   def render(selection, _indent_level) do
     raise ArgumentError,
       message: """
-      [GraphQLDocument] Expected a list of fields.
+      Expected a list of fields.
 
       Received: `#{inspect(selection)}`
       Did you forget to enclose it in a list?
