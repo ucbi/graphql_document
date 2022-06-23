@@ -9,20 +9,29 @@ defmodule GraphQLDocument.Argument do
   @type t :: {Name.t(), Value.t()}
 
   @doc "Render a list of arguments"
+  @spec render([t]) :: iolist
   def render(args) do
     unless is_map(args) or is_list(args) do
       raise "Expected a keyword list or map for args, received: #{inspect(args)}"
     end
 
     if Enum.any?(args) do
-      args_string =
-        Enum.map_join(args, ", ", fn {key, value} ->
-          "#{key}: #{Value.render(value)}"
+      [
+        ?(,
+        args
+        |> Enum.map(fn {key, value} ->
+          [
+            Name.valid_name!(key),
+            ?:,
+            ?\s,
+            Value.render(value)
+          ]
         end)
-
-      "(#{args_string})"
+        |> Enum.intersperse(", "),
+        ?)
+      ]
     else
-      ""
+      []
     end
   end
 end

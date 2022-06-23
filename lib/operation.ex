@@ -80,12 +80,18 @@ defmodule GraphQLDocument.Operation do
     directives = Keyword.get(opts, :directives, [])
     fragments = Keyword.get(opts, :fragments, [])
 
-    "#{operation_type}#{render_variables(variables)}#{Directive.render(directives)}#{SelectionSet.render(selection, 1)}#{Fragment.render_definitions(fragments)}"
+    IO.iodata_to_binary([
+      to_string(operation_type),
+      render_variables(variables),
+      Directive.render(directives),
+      SelectionSet.render(selection, 1),
+      Fragment.render_definitions(fragments)
+    ])
   end
 
   defp render_variables(variables) when is_list(variables) do
     rendered =
-      Enum.map_join(variables, ", ", fn {name, type} ->
+      Enum.map(variables, fn {name, type} ->
         {type, opts} =
           case type do
             {type, opts} -> {type, opts}
@@ -100,28 +106,45 @@ defmodule GraphQLDocument.Operation do
 
         required =
           if Keyword.get(opts, :null) == false do
-            "!"
+            ?!
           end
 
         default =
           if default = Keyword.get(opts, :default) do
-            " = #{Value.render(default)}"
+            [
+              " = ",
+              Value.render(default)
+            ]
           end
 
         type = Name.valid_name!(type)
 
         rendered_type =
           if is_list do
-            "[#{type}]"
+            [?[, type, ?]]
           else
-            "#{Kernel.to_string(type)}"
+            Kernel.to_string(type)
           end
 
-        "$#{Name.valid_name!(name)}: #{rendered_type}#{required}#{default}"
+        [
+          ?$,
+          Name.valid_name!(name),
+          ?:,
+          ?\s,
+          rendered_type,
+          required || "",
+          default || ""
+        ]
       end)
+      |> Enum.intersperse(", ")
 
     if Enum.any?(variables) do
-      " (#{rendered})"
+      [
+        ?\s,
+        ?(,
+        rendered,
+        ?)
+      ]
     else
       ""
     end

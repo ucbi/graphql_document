@@ -9,14 +9,16 @@ defmodule GraphQLDocument.Directive do
   @type t :: Name.t() | {Name.t(), [Argument.t()]}
 
   @doc "Render a list of directives"
+  @spec render([Directive.t()]) :: iolist
   def render(directives) do
     unless is_map(directives) or is_list(directives) do
       raise "Expected a keyword list or map for directives, received: #{inspect(directives)}"
     end
 
     if Enum.any?(directives) do
-      directives_string =
-        Enum.map_join(directives, " ", fn directive ->
+      rendered =
+        directives
+        |> Enum.map(fn directive ->
           {name, args} =
             case directive do
               {name, args} -> {name, args}
@@ -24,15 +26,26 @@ defmodule GraphQLDocument.Directive do
             end
 
           if Enum.any?(args) do
-            "@#{name}#{Argument.render(args)}"
+            [
+              ?@,
+              Name.valid_name!(name),
+              Argument.render(args)
+            ]
           else
-            "@#{name}"
+            [
+              ?@,
+              Name.valid_name!(name)
+            ]
           end
         end)
+        |> Enum.intersperse(?\s)
 
-      " #{directives_string}"
+      [
+        ?\s,
+        rendered
+      ]
     else
-      ""
+      []
     end
   end
 end
