@@ -21,6 +21,7 @@ defmodule GraphQLDocument.Value do
   @type variable :: {:var, Name.t()}
 
   @doc "Render a single value"
+  @spec render(t) :: iodata
   def render(%Date{} = date), do: inspect(Date.to_iso8601(date))
   def render(%DateTime{} = date_time), do: inspect(DateTime.to_iso8601(date_time))
   def render(%Time{} = time), do: inspect(Time.to_iso8601(time))
@@ -37,24 +38,38 @@ defmodule GraphQLDocument.Value do
   end
 
   def render({:var, var}) do
-    "$#{Name.valid_name!(var)}"
+    [
+      ?$,
+      Name.valid_name!(var)
+    ]
   end
 
   def render([]), do: "[]"
 
   def render(enum) when is_list(enum) or is_map(enum) do
     if is_map(enum) || Keyword.keyword?(enum) do
-      nested_arguments =
+      [
+        ?{,
         enum
-        |> Enum.map_join(", ", fn {key, value} -> "#{key}: #{render(value)}" end)
-
-      "{#{nested_arguments}}"
+        |> Enum.map(fn {key, value} ->
+          [
+            Name.valid_name!(key),
+            ?:,
+            ?\s,
+            render(value)
+          ]
+        end)
+        |> Enum.intersperse(", "),
+        ?}
+      ]
     else
-      nested_arguments =
+      [
+        ?[,
         enum
-        |> Enum.map_join(", ", &"#{render(&1)}")
-
-      "[#{nested_arguments}]"
+        |> Enum.map(&render/1)
+        |> Enum.intersperse(", "),
+        ?]
+      ]
     end
   end
 

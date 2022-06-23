@@ -30,28 +30,50 @@ defmodule GraphQLDocument.Fragment do
           | {:__inline_fragment__, {on, SelectionSet.t()}}
           | {:__inline_fragment__, {on | nil, [Directive.t()], SelectionSet.t()}}
 
+  @spec render_definitions([definition]) :: iolist
   def render_definitions(fragments) do
     unless is_map(fragments) or is_list(fragments) do
       raise "Expected a keyword list or map for fragments, received: #{inspect(fragments)}"
     end
 
-    Enum.map_join(fragments, "", fn {name, definition} ->
+    for {name, definition} <- fragments do
       {on, directives, selection} =
         case definition do
           {on, selection} -> {on, [], selection}
           {on, directives, selection} -> {on, directives, selection}
         end
 
-      "\n\nfragment #{name} on #{on}#{Directive.render(directives)}#{SelectionSet.render(selection, 1)}"
-    end)
+      [
+        "\n\nfragment ",
+        Name.valid_name!(name),
+        " on ",
+        Name.valid_name!(on),
+        Directive.render(directives),
+        SelectionSet.render(selection, 1)
+      ]
+    end
   end
 
+  @spec render_spread(Name.t(), [Directive.t()]) :: iolist
   def render_spread(name, directives \\ []) do
-    "...#{name}#{Directive.render(directives)}"
+    [
+      "...",
+      Name.valid_name!(name),
+      Directive.render(directives)
+    ]
   end
 
+  @spec render_inline(Name.t(), [Directive.t()], SelectionSet.t(), integer) :: iolist
   def render_inline(on, directives, selection, indent_level) do
-    on = if on, do: " on #{Name.valid_name!(on)}"
-    "...#{on}#{Directive.render(directives)}#{SelectionSet.render(selection, indent_level)}"
+    [
+      "...",
+      if on do
+        [" on ", Name.valid_name!(on)]
+      else
+        []
+      end,
+      Directive.render(directives),
+      SelectionSet.render(selection, indent_level)
+    ]
   end
 end
