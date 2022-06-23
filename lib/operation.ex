@@ -1,5 +1,5 @@
 defmodule GraphQLDocument.Operation do
-  alias GraphQLDocument.{Name, SelectionSet}
+  alias GraphQLDocument.{Name, SelectionSet, Value}
 
   @typedoc "See: http://spec.graphql.org/October2021/#OperationType"
   @type operation_type :: :query | :mutation | :subscription
@@ -21,7 +21,8 @@ defmodule GraphQLDocument.Operation do
       daysOfWeek: [String]
       daysOfWeek: {[String], default: ["Saturday", "Sunday"]}
   """
-  @type variable_definition :: {Name.t(), GraphQLDocument.type | {GraphQLDocument.type, [variable_definition_opt]}}
+  @type variable_definition ::
+          {Name.t(), GraphQLDocument.type() | {GraphQLDocument.type(), [variable_definition_opt]}}
 
   @typedoc """
   Options that can be passed when defining a variable.
@@ -30,7 +31,7 @@ defmodule GraphQLDocument.Operation do
     - `null: false` makes it a non-nullable (required) variable.
 
   """
-  @type variable_definition_opt :: {:default, GraphQLDocument.value} | {:null, boolean}
+  @type variable_definition_opt :: {:default, GraphQLDocument.value()} | {:null, boolean}
 
   @doc """
   Generates GraphQL syntax from a nested Elixir keyword list.
@@ -54,7 +55,8 @@ defmodule GraphQLDocument.Operation do
 
   """
   @spec render(operation_type, SelectionSet.t(), [operation_option]) :: String.t()
-  def render(operation_type, selection, opts) when is_atom(operation_type) and is_list(selection) and is_list(opts) do
+  def render(operation_type, selection, opts)
+      when is_atom(operation_type) and is_list(selection) and is_list(opts) do
     if operation_type not in [:query, :mutation, :subscription] do
       raise ArgumentError,
         message:
@@ -73,20 +75,50 @@ defmodule GraphQLDocument.Operation do
 
     variables = Keyword.get(opts, :variables, [])
 
-    SelectionSet.render(
-      [
-        {
-          operation_type,
-          {variables_to_args(variables), selection}
-        }
-      ],
-      0
-    )
+    "#{operation_type}#{render_variables(variables)}#{SelectionSet.render(selection, 1)}"
   end
 
-  defp variables_to_args(variables) when is_list(variables) do
-    for {name, type} <- variables do
-      {"$#{Name.valid_name!(name)}", {:type, type}}
+  defp render_variables(variables) when is_list(variables) do
+    rendered =
+      Enum.map_join(variables, ", ", fn {name, type} ->
+        {type, opts} =
+          case type do
+            {type, opts} -> {type, opts}
+            type -> {type, []}
+          end
+
+        {type, is_list} =
+          case type do
+            [type] -> {type, true}
+            type -> {type, false}
+          end
+
+        required =
+          if Keyword.get(opts, :null) == false do
+            "!"
+          end
+
+        default =
+          if default = Keyword.get(opts, :default) do
+            " = #{Value.render(default)}"
+          end
+
+        type = Name.valid_name!(type)
+
+        rendered_type =
+          if is_list do
+            "[#{type}]"
+          else
+            "#{Kernel.to_string(type)}"
+          end
+
+        "$#{Name.valid_name!(name)}: #{rendered_type}#{required}#{default}"
+      end)
+
+    if Enum.any?(variables) do
+      " (#{rendered})"
+    else
+      ""
     end
   end
 end

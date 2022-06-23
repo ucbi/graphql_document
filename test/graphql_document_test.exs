@@ -250,22 +250,23 @@ defmodule GraphQLDocumentTest do
             },
             friend: {
               :user,
-              [id: {:var, :friendId}],
+              [id: {:var, :friendId}, type: {:var, :friendType}],
               [:name]
             }
           ],
           variables: [
             myId: {Int, null: false},
-            friendId: Int
+            friendId: Int,
+            friendType: {String, default: "best"}
           ]
         )
 
       expected = """
-      query($myId: Int!, $friendId: Int) {
+      query ($myId: Int!, $friendId: Int, $friendType: String = "best") {
         me: user(id: $myId) {
           name
         }
-        friend: user(id: $friendId) {
+        friend: user(id: $friendId, type: $friendType) {
           name
         }
       }\

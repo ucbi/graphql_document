@@ -187,25 +187,6 @@ defmodule GraphQLDocument do
   """
   @type type :: Name.t() | [type]
 
-  @typedoc """
-  A value in GraphQL can be a number, string, boolean, null, an Enum, or a List or Object.
-
-  See: http://spec.graphql.org/October2021/#Value
-  """
-  @type value ::
-          integer
-          | float
-          | String.t()
-          | boolean
-          | nil
-          | {:enum, String.t()}
-          | [value]
-          | %{optional(atom) => value}
-          | variable
-
-  @typedoc "A usage of a defined variable within an operation"
-  @type variable :: {:var, Name.t()}
-
   @doc """
   Wraps an enum string value (such as user input from a form) into a
   `GraphQLDocument`-friendly tuple.
