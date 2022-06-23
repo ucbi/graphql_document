@@ -8,7 +8,18 @@ defmodule GraphQLDocument.Argument do
   """
   @type t :: {Name.t(), Value.t()}
 
-  @doc "Render a list of arguments"
+  @doc """
+  Returns a list of arguments as iodata to be inserted into a GraphQL document.
+
+  ### Examples
+
+      iex> render(foo: "bar") |> IO.iodata_to_binary()
+      "(foo: \\"bar\\")"
+
+      iex> render(%{person: [coordinates: [lat: 123.45, lng: 678.90]]}) |> IO.iodata_to_binary()
+      "(person: {coordinates: {lat: 123.45, lng: 678.9}})"
+
+  """
   @spec render([t]) :: iolist
   def render(args) do
     unless is_map(args) or is_list(args) do

@@ -20,7 +20,48 @@ defmodule GraphQLDocument.Value do
   @typedoc "A usage of a defined variable within an operation"
   @type variable :: {:var, Name.t()}
 
-  @doc "Render a single value"
+  @doc """
+  Given a single value of a variety of types, (see `t:t/0`) returns it as as iodata to be
+  inserted into a GraphQL document.
+
+  Returns native Elixir date and datetime structures as strings in ISO8601 format.
+
+  ### Examples
+
+      iex> render(~D[2019-11-12])
+      "\\"2019-11-12\\""
+
+      iex> render(~N[2019-11-12T10:30:25])
+      "\\"2019-11-12T10:30:25\\""
+
+      iex> render(DateTime.new!(~D[2019-11-12], ~T[10:30:25]))
+      "\\"2019-11-12T10:30:25Z\\""
+
+      iex> render({:enum, Jedi})
+      "Jedi"
+
+      iex> render({:var, :allegiance})
+      [?$, "allegiance"]
+
+      iex> render([])
+      "[]"
+
+      iex> render("sOmE-sTrInG")
+      "\\"sOmE-sTrInG\\""
+
+      iex> render(true)
+      "true"
+
+      iex> render(false)
+      "false"
+
+      iex> render(%{map: %{with: [nested: ["data"]]}})
+      [?{, [["map", ?:, 32, [?{, [["with", ?:, 32, [?{, [["nested", ?:, 32, [?[, ["\\"data\\""], ?]]]], ?}]]], ?}]]], ?}]
+
+      iex> render(%{map: %{with: [nested: ["data"]]}}) |> IO.iodata_to_binary()
+      "{map: {with: {nested: [\\"data\\"]}}}"
+
+  """
   @spec render(t) :: iodata
   def render(%Date{} = date), do: inspect(Date.to_iso8601(date))
   def render(%DateTime{} = date_time), do: inspect(DateTime.to_iso8601(date_time))
