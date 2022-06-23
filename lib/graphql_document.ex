@@ -178,41 +178,7 @@ defmodule GraphQLDocument do
   ```
   """
 
-  alias GraphQLDocument.{Name, SelectionSet}
-
-  @typedoc "See: http://spec.graphql.org/October2021/#OperationType"
-  @type operation_type :: :query | :mutation | :subscription
-
-  @typedoc "Options that can be passed along with the operation."
-  @type operation_option :: {:variables, [variable_definition]}
-
-  @typedoc """
-  The definition of a variable; goes alongside the `t:operation_type` in the document.
-
-  This is not the _usage_ of the variable (injecting it into an arg somewhere)
-  but rather defining its name and type.
-
-  ### Examples
-
-      yearOfBirth: Int
-      myId: {Int, null: false}
-      status: {String, default: "active"}
-      daysOfWeek: [String]
-      daysOfWeek: {[String], default: ["Saturday", "Sunday"]}
-  """
-  @type variable_definition :: {Name.t(), type | {type, [variable_definition_opt]}}
-
-  @typedoc """
-  Options that can be passed when defining a variable.
-
-    - `default` sets the default value. (Pass any `t:value/0`)
-    - `null: false` makes it a non-nullable (required) variable.
-
-  """
-  @type variable_definition_opt :: {:default, value} | {:null, boolean}
-
-  @typedoc "A usage of a defined variable within an operation"
-  @type variable :: {:var, Name.t()}
+  alias GraphQLDocument.{Name, Operation}
 
   @typedoc """
   A GraphQL Type.
@@ -237,6 +203,9 @@ defmodule GraphQLDocument do
           | %{optional(atom) => value}
           | variable
 
+  @typedoc "A usage of a defined variable within an operation"
+  @type variable :: {:var, Name.t()}
+
   @doc """
   Wraps an enum string value (such as user input from a form) into a
   `GraphQLDocument`-friendly tuple.
@@ -260,61 +229,19 @@ defmodule GraphQLDocument do
   """
   def var(name) when is_binary(name) or is_atom(name), do: {:var, name}
 
-  @doc """
-  Generates GraphQL syntax from a nested Elixir keyword list.
-
-  ### Example
-
-      iex> GraphQLDocument.to_string(:query, [user: {[id: 3], [:name, :age, :height, documents: [:filename, :url]]}])
-      \"\"\"
-      query {
-        user(id: 3) {
-          name
-          age
-          height
-          documents {
-            filename
-            url
-          }
-        }
-      }\\
-      \"\"\"
-
-  """
-  @spec to_string(operation_type, SelectionSet.t(), [operation_option]) :: String.t()
-  def to_string(operation_type \\ :query, params, opts \\ []) do
-    if operation_type not in [:query, :mutation, :subscription] do
-      raise ArgumentError,
-        message:
-          "[GraphQLDocument] operation_type must be :query, :mutation, or :subscription. Received #{inspect(operation_type)}"
-    end
-
-    unless is_list(params) or is_map(params) do
-      raise ArgumentError,
-        message: """
-        [GraphQLDocument] Expected a list of fields.
-
-        Received: `#{inspect(params)}`
-        Did you forget to enclose it in a list?
-        """
-    end
-
-    variables = Keyword.get(opts, :variables, [])
-
-    SelectionSet.render(
-      [
-        {
-          operation_type,
-          {variables_to_args(variables), params}
-        }
-      ],
-      0
-    )
+  def query(selection, opts \\ []) do
+    operation(:query, selection, opts)
   end
 
-  defp variables_to_args(variables) when is_list(variables) do
-    for {name, type} <- variables do
-      {"$#{Name.valid_name!(name)}", {:type, type}}
-    end
+  def mutation(selection, opts \\ []) do
+    operation(:mutation, selection, opts)
+  end
+
+  def subscription(selection, opts \\ []) do
+    operation(:subscription, selection, opts)
+  end
+
+  def operation(operation_type \\ :query, selection, opts \\ []) do
+    Operation.render(operation_type, selection, opts)
   end
 end
