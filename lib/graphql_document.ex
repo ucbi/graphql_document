@@ -187,6 +187,10 @@ defmodule GraphQLDocument do
   """
   @type type :: Name.t() | [type]
 
+  def field(config), do: {:__field__, config}
+
+  def field(name, config), do: {:__field__, name, config}
+
   @doc """
   Wraps an enum string value (such as user input from a form) in a
   `GraphQLDocument`-friendly tuple.

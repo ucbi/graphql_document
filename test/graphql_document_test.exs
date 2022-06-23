@@ -7,17 +7,18 @@ defmodule GraphQLDocumentTest do
     test "builds a GraphQL syntax string from an Elixir data structure" do
       result =
         GraphQLDocument.operation(
-          invoices:
-            {[customer: "123456"],
-             [
-               :id,
-               :total,
-               items: ~w(description amount),
-               payments: {
-                 [after: "2021-01-01", posted: true],
-                 ~w(amount date)
-               }
-             ]}
+          invoices: {
+            [customer: "123456"],
+            [
+              :id,
+              :total,
+              items: ~w(description amount),
+              payments: {
+                [after: "2021-01-01", posted: true],
+                ~w(amount date)
+              }
+            ]
+          }
         )
 
       expected = """
@@ -213,16 +214,18 @@ defmodule GraphQLDocumentTest do
     test "field aliases" do
       result =
         GraphQLDocument.operation(
-          me: {
-            :user,
-            [id: 1],
-            [:name]
-          },
-          friend: {
-            :user,
-            [id: 2],
-            [:name]
-          }
+          me:
+            field(
+              :user,
+              args: [id: 1],
+              select: [:name]
+            ),
+          friend:
+            field(
+              :user,
+              args: [id: 2],
+              select: [:name]
+            )
         )
 
       expected = """
@@ -244,16 +247,18 @@ defmodule GraphQLDocumentTest do
         GraphQLDocument.operation(
           :query,
           [
-            me: {
-              :user,
-              [id: GraphQLDocument.var(:myId)],
-              [:name]
-            },
-            friend: {
-              :user,
-              [id: {:var, :friendId}, type: {:var, :friendType}],
-              [:name]
-            }
+            me:
+              field(
+                :user,
+                args: [id: GraphQLDocument.var(:myId)],
+                select: [:name]
+              ),
+            friend:
+              field(
+                :user,
+                args: [id: {:var, :friendId}, type: {:var, :friendType}],
+                select: [:name]
+              )
           ],
           variables: [
             myId: {Int, null: false},
@@ -280,7 +285,14 @@ defmodule GraphQLDocumentTest do
       result =
         GraphQLDocument.operation(
           :query,
-          [experimentalField: {[], [skip: [if: {:var, :someTest}]], []}],
+          [
+            experimentalField:
+              field(
+                directives: [
+                  skip: [if: var(:someTest)]
+                ]
+              )
+          ],
           variables: [someTest: {Boolean, null: false}],
           directives: [:debug, log: [level: "warning"]]
         )

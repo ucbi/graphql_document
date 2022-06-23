@@ -16,6 +16,9 @@ defmodule GraphQLDocument.Directive do
       iex> render([log: [level: "warn"]]) |> IO.iodata_to_binary()
       " @log(level: \\"warn\\")"
 
+      iex> render([:debug]) |> IO.iodata_to_binary()
+      " @debug"
+
   """
   @spec render([Directive.t()]) :: iolist
   def render(directives) do
