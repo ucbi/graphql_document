@@ -9,7 +9,7 @@ defmodule GraphQLDocument.Argument do
   @type t :: {Name.t(), Value.t()}
 
   @doc "Render a list of arguments"
-  def render_all(args) do
+  def render(args) do
     unless is_map(args) or is_list(args) do
       raise "Expected a keyword list or map for args, received: #{inspect(args)}"
     end

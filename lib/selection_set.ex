@@ -27,19 +27,19 @@ defmodule GraphQLDocument.SelectionSet do
           "#{indent}#{field}#{render(sub_fields, indent_level + 1)}"
 
         {field, {args, sub_fields}} ->
-          "#{indent}#{field}#{Argument.render_all(args)}#{render(sub_fields, indent_level + 1)}"
+          "#{indent}#{field}#{Argument.render(args)}#{render(sub_fields, indent_level + 1)}"
 
         {field, {args, directives, sub_fields}}
         when (is_list(args) or is_map(args)) and is_list(directives) and is_list(sub_fields) ->
-          "#{indent}#{field}#{Argument.render_all(args)}#{Directive.render_all(directives)}#{render(sub_fields, indent_level + 1)}"
+          "#{indent}#{field}#{Argument.render(args)}#{Directive.render(directives)}#{render(sub_fields, indent_level + 1)}"
 
         {field_alias, {field, args, sub_fields}}
         when (is_atom(field) and is_map(args)) or is_list(args) ->
-          "#{indent}#{field_alias}: #{field}#{Argument.render_all(args)}#{render(sub_fields, indent_level + 1)}"
+          "#{indent}#{field_alias}: #{field}#{Argument.render(args)}#{render(sub_fields, indent_level + 1)}"
 
         {field_alias, {field, args, directives, sub_fields}}
         when is_atom(field) and (is_map(args) or is_list(args)) and is_list(directives) ->
-          "#{indent}#{field_alias}: #{field}#{Argument.render_all(args)}#{Directive.render_all(directives)}#{render(sub_fields, indent_level + 1)}"
+          "#{indent}#{field_alias}: #{field}#{Argument.render(args)}#{Directive.render(directives)}#{render(sub_fields, indent_level + 1)}"
       end)
 
     if Enum.any?(params) do

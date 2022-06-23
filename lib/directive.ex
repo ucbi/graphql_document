@@ -9,7 +9,7 @@ defmodule GraphQLDocument.Directive do
   @type t :: Name.t() | {Name.t(), [Argument.t()]}
 
   @doc "Render a list of directives"
-  def render_all(directives) do
+  def render(directives) do
     unless is_map(directives) or is_list(directives) do
       raise "Expected a keyword list or map for directives, received: #{inspect(directives)}"
     end
@@ -24,7 +24,7 @@ defmodule GraphQLDocument.Directive do
             end
 
           if Enum.any?(args) do
-            "@#{name}#{Argument.render_all(args)}"
+            "@#{name}#{Argument.render(args)}"
           else
             "@#{name}"
           end
