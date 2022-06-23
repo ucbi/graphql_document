@@ -1,6 +1,6 @@
 defmodule GraphQLDocumentTest do
   use ExUnit.Case
-  doctest GraphQLDocument
+  doctest GraphQLDocument, import: true
 
   describe "to_string/1" do
     test "builds a GraphQL syntax string from an Elixir data structure" do
@@ -230,6 +230,42 @@ defmodule GraphQLDocumentTest do
           name
         }
         friend: user(id: 2) {
+          name
+        }
+      }\
+      """
+
+      assert result == expected
+    end
+
+    test "variables" do
+      result =
+        GraphQLDocument.to_string(
+          :query,
+          [
+            me: {
+              :user,
+              [id: GraphQLDocument.var(:myId)],
+              [:name]
+            },
+            friend: {
+              :user,
+              [id: {:var, :friendId}],
+              [:name]
+            }
+          ],
+          variables: [
+            myId: {Int, null: false},
+            friendId: Int
+          ]
+        )
+
+      expected = """
+      query($myId: Int!, $friendId: Int) {
+        me: user(id: $myId) {
+          name
+        }
+        friend: user(id: $friendId) {
           name
         }
       }\
