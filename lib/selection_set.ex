@@ -43,11 +43,7 @@ defmodule GraphQLDocument.SelectionSet do
       end)
 
     if Enum.any?(params) do
-      if indent_level == 0 do
-        rendered
-      else
-        " {\n#{rendered}\n#{String.duplicate("  ", indent_level - 1)}}"
-      end
+      " {\n#{rendered}\n#{String.duplicate("  ", indent_level - 1)}}"
     else
       ""
     end
