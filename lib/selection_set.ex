@@ -1,5 +1,5 @@
 defmodule GraphQLDocument.SelectionSet do
-  alias GraphQLDocument.{Argument, Name}
+  alias GraphQLDocument.{Argument, Directive, Name}
 
   @typedoc """
   A SelectionSet defines the set of fields in an object to be returned.
@@ -29,8 +29,17 @@ defmodule GraphQLDocument.SelectionSet do
         {field, {args, sub_fields}} ->
           "#{indent}#{field}#{Argument.render_all(args)}#{render(sub_fields, indent_level + 1)}"
 
-        {field_alias, {field, args, sub_fields}} when is_map(args) or is_list(args) ->
+        {field, {args, directives, sub_fields}}
+        when (is_list(args) or is_map(args)) and is_list(directives) and is_list(sub_fields) ->
+          "#{indent}#{field}#{Argument.render_all(args)}#{Directive.render_all(directives)}#{render(sub_fields, indent_level + 1)}"
+
+        {field_alias, {field, args, sub_fields}}
+        when (is_atom(field) and is_map(args)) or is_list(args) ->
           "#{indent}#{field_alias}: #{field}#{Argument.render_all(args)}#{render(sub_fields, indent_level + 1)}"
+
+        {field_alias, {field, args, directives, sub_fields}}
+        when is_atom(field) and (is_map(args) or is_list(args)) and is_list(directives) ->
+          "#{indent}#{field_alias}: #{field}#{Argument.render_all(args)}#{Directive.render_all(directives)}#{render(sub_fields, indent_level + 1)}"
       end)
 
     if Enum.any?(params) do

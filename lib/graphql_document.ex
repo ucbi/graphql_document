@@ -286,7 +286,7 @@ defmodule GraphQLDocument do
     if operation_type not in [:query, :mutation, :subscription] do
       raise ArgumentError,
         message:
-          "[GraphQLDocument] operation_type must be :query, :mutation, or :subscription. Received #{operation_type}"
+          "[GraphQLDocument] operation_type must be :query, :mutation, or :subscription. Received #{inspect(operation_type)}"
     end
 
     unless is_list(params) or is_map(params) do

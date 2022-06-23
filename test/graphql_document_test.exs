@@ -273,5 +273,22 @@ defmodule GraphQLDocumentTest do
 
       assert result == expected
     end
+
+    test "directives" do
+      result =
+        GraphQLDocument.to_string(
+          :query,
+          [experimentalField: {[], [skip: [if: {:var, :someTest}]], []}],
+          variables: [someTest: {Boolean, null: false}]
+        )
+
+      expected = """
+      query ($someTest: Boolean!) {
+        experimentalField @skip(if: $someTest)
+      }\
+      """
+
+      assert result == expected
+    end
   end
 end
