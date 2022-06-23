@@ -213,6 +213,8 @@ defmodule GraphQLDocument do
   @doc """
   Wraps a fragment spread in `GraphQLDocument`-friendly tuple.
 
+  TODO: Document usage with directives.
+
   ### Example
 
       iex> fragment(:foo)
@@ -220,6 +222,19 @@ defmodule GraphQLDocument do
 
   """
   def fragment(name) when is_binary(name) or is_atom(name), do: {:__fragment__, name}
+
+  @doc """
+  Wraps an inline fragment in `GraphQLDocument`-friendly tuple.
+
+  TODO: Document usage with directives.
+
+  ### Example
+
+      iex> inline_fragment({User, [:name, :email]})
+      {:__inline_fragment__, {User, [:name, :email]}}
+
+  """
+  def inline_fragment(inline), do: {:__inline_fragment__, inline}
 
   def query(selection, opts \\ []) do
     operation(:query, selection, opts)

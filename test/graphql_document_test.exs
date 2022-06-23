@@ -302,6 +302,7 @@ defmodule GraphQLDocumentTest do
             user:
               {[id: 4],
                [
+                 inline_fragment({User, [skip: [if: true]], [:password, :passwordHash]}),
                  friends: {[first: 10], [fragment(:friendFields)]},
                  mutualFriends: {[first: 10], [fragment(:friendFields)]}
                ]}
@@ -314,6 +315,10 @@ defmodule GraphQLDocumentTest do
       expected = """
       query {
         user(id: 4) {
+          ... on User @skip(if: true) {
+            password
+            passwordHash
+          }
           friends(first: 10) {
             ...friendFields
           }
