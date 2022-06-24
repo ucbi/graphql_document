@@ -13,6 +13,7 @@ defmodule GraphQLDocument.Field do
       [
         user: [:name, email]
       ]
+
   """
 
   defstruct [
@@ -45,7 +46,19 @@ defmodule GraphQLDocument.Field do
   See `render/2` for examples of how different Elixir expressions are rendered
   as GraphQL syntax.
   """
-  @type t :: Name.t() | {Name.t(), [t]} | {Name.t(), {[Argument.t()], [t]}} | field_struct
+  @type t :: Name.t() | {Name.t(), [t]} | {Name.t(), {[Argument.t()], [t]}} | spec
+
+  @typedoc """
+  An expression of a field with an alias or directives.
+  """
+  @type spec ::
+          {:field,
+           [
+             as: atom,
+             args: [Argument.t()],
+             directives: [Directive.t()],
+             select: [Selection.t()]
+           ]}
 
   @typedoc """
   A struct containing all of the aspects of a Field expression.
@@ -53,7 +66,8 @@ defmodule GraphQLDocument.Field do
   > #### Internal Use Only {: .warning}
   >
   > Instead of creating `%Field{}` structs manually, use the
-  > `GraphQLDocument.field/1` function.
+  > `GraphQLDocument.field/1` function or provide a structure
+  > from `t:t/0`.
   """
   @type field_struct :: %Field{
           as: atom,
@@ -88,7 +102,7 @@ defmodule GraphQLDocument.Field do
     })
   end
 
-  def new({name, {:__field__, config}}) do
+  def new({name, {:field, config}}) do
     config =
       config
       |> Enum.into([])
@@ -97,7 +111,7 @@ defmodule GraphQLDocument.Field do
     struct!(Field, config)
   end
 
-  def new({as, {:__field__, name, config}}) do
+  def new({as, {:field, name, config}}) do
     config =
       config
       |> Enum.into([])
@@ -115,15 +129,11 @@ defmodule GraphQLDocument.Field do
 
   ### Examples
 
-      iex> :email
-      ...> |> GraphQLDocument.Field.new()
-      ...> |> render(1)
+      iex> render(:email, 1)
       ...> |> IO.iodata_to_binary()
       "email"
 
-      iex> {:self, [:name, :email]}
-      ...> |> GraphQLDocument.Field.new()
-      ...> |> render(1)
+      iex> render({:self, [:name, :email]}, 1)
       ...> |> IO.iodata_to_binary()
       """
       self {
@@ -132,11 +142,10 @@ defmodule GraphQLDocument.Field do
       }\
       """
 
-      iex> {:user, {:__field__,
+      iex> {:user, {:field,
       ...>   args: [id: 100],
       ...>   select: [:name, :email]
       ...> }}
-      ...> |> GraphQLDocument.Field.new()
       ...> |> render(1)
       ...> |> IO.iodata_to_binary()
       """
@@ -146,12 +155,11 @@ defmodule GraphQLDocument.Field do
       }\
       """
 
-      iex> {:user, {:__field__,
+      iex> {:user, {:field,
       ...>   args: [id: 100],
       ...>   directives: [log: [level: "warn"]],
       ...>   select: [:name, :email]
       ...> }}
-      ...> |> GraphQLDocument.Field.new()
       ...> |> render(1)
       ...> |> IO.iodata_to_binary()
       """
@@ -161,13 +169,12 @@ defmodule GraphQLDocument.Field do
       }\
       """
 
-      iex> {:me, {:__field__,
+      iex> {:me, {:field,
       ...>   :user,
       ...>   args: [id: 100],
       ...>   directives: [log: [level: "warn"]],
       ...>   select: [:name, :email]
       ...> }}
-      ...> |> GraphQLDocument.Field.new()
       ...> |> render(1)
       ...> |> IO.iodata_to_binary()
       """
@@ -180,6 +187,9 @@ defmodule GraphQLDocument.Field do
   '''
   @spec render(t, pos_integer) :: iolist
   def render(field, indent_level) do
+    # immediately coerce the expression into a `%Field{}` struct to standardize rendering below
+    field = Field.new(field)
+
     [
       if field_alias = field.as do
         [

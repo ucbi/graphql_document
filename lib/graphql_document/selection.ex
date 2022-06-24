@@ -86,9 +86,7 @@ defmodule GraphQLDocument.Selection do
         field ->
           [
             indent,
-            field
-            |> Field.new()
-            |> Field.render(indent_level + 1)
+            Field.render(field, indent_level + 1)
           ]
       end)
       |> Enum.intersperse(?\n)

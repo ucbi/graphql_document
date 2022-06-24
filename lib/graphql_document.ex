@@ -33,10 +33,10 @@ defmodule GraphQLDocument do
   ### Examples
 
       iex> field(args: [id: 2], directives: [:debug], select: [:name])
-      {:__field__, [args: [id: 2], directives: [:debug], select: [:name]]}
+      {:field, [args: [id: 2], directives: [:debug], select: [:name]]}
 
   """
-  def field(config), do: {:__field__, config}
+  def field(config), do: {:field, config}
 
   @doc """
   If you want to express a field with an alias, you must use this function.
@@ -46,10 +46,10 @@ defmodule GraphQLDocument do
   ### Examples
 
       iex> field(:user, args: [id: 2], directives: [:debug], select: [:name])
-      {:__field__, :user, [args: [id: 2], directives: [:debug], select: [:name]]}
+      {:field, :user, [args: [id: 2], directives: [:debug], select: [:name]]}
 
   """
-  def field(name, config), do: {:__field__, name, config}
+  def field(name, config), do: {:field, name, config}
 
   @doc """
   Wraps a variable name in a `GraphQLDocument`-friendly tuple.
