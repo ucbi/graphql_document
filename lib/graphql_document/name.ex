@@ -4,14 +4,15 @@ defmodule GraphQLDocument.Name do
   [Name](http://spec.graphql.org/October2021/#Name) as starting with a letter
   or underscore. It may only contain letters, underscores, and digits.
 
+  The names of
   [Fields](http://spec.graphql.org/October2021/#sec-Language.Fields),
   [Types](http://spec.graphql.org/October2021/#Type),
   [Arguments](http://spec.graphql.org/October2021/#sec-Language.Arguments),
   [Variables](http://spec.graphql.org/October2021/#sec-Language.Variables),
   [Directives](http://spec.graphql.org/October2021/#sec-Language.Directives),
   [Fragments](http://spec.graphql.org/October2021/#sec-Language.Fragments),
-  and [Enums](http://spec.graphql.org/October2021/#sec-Enums) must all have
-  names that conform to this definition.
+  and [Enums](http://spec.graphql.org/October2021/#sec-Enums) must all
+  conform to this definition.
   """
 
   @typedoc """

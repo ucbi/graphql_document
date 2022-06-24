@@ -5,6 +5,7 @@ defmodule GraphQLDocument.Argument do
 
       [width: 100, height: 50]
 
+  See `render/1` for examples of more complicated argument sets.
   """
 
   alias GraphQLDocument.{Name, Value}
@@ -36,6 +37,17 @@ defmodule GraphQLDocument.Argument do
       ...> ]})
       ...> |> IO.iodata_to_binary()
       "(person: {coordinates: {lat: 123.45, lng: 678.9}})"
+
+      iex> render(coordinates: [
+      ...>   lat: {:var, :myLat},
+      ...>   lng: {:var, :myLng}
+      ...> ])
+      ...> |> IO.iodata_to_binary()
+      "(coordinates: {lat: $myLat, lng: $myLng})"
+
+      iex> render(ids: [1, 2, 3])
+      ...> |> IO.iodata_to_binary()
+      "(ids: [1, 2, 3])"
 
   '''
   @spec render([t]) :: iolist

@@ -1,14 +1,19 @@
 defmodule GraphQLDocument.Enum do
   @moduledoc """
   [Enums](http://spec.graphql.org/October2021/#sec-Enums) can be defined
-  in the type system side of GraphQL. `GraphQLDocument` does not currently
-  provide the ability to emit GraphQL type system syntax.
+  in the Type System side of GraphQL.
 
-  However, if your GraphQL server defines any Enums, you can express
-  the [Enum Values](http://spec.graphql.org/October2021/#sec-Enum-Value)
-  they define as Values given in Arguments.
+  For the purposes of making GraphQL requests, you can express
+  [Enum Values](http://spec.graphql.org/October2021/#sec-Enum-Value) as Values
+  given in Arguments.
 
-  **Enums are expressed as atoms.** See `render/1` for examples.
+  > #### Enums are expressed as atoms. {: .tip}
+  >
+  > You can use any valid atom syntax, such as `Person` or `:Person` or `:"Person"`.
+  >
+  > However, all enums must be valid GraphQL Names. See `GraphQLDocument.Name`.
+
+  See `render/1` for examples.
   """
 
   alias GraphQLDocument.Name

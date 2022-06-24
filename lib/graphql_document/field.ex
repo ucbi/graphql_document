@@ -1,6 +1,6 @@
 defmodule GraphQLDocument.Field do
   @moduledoc """
-  A [Field](http://spec.graphql.org/October2021/#Field) describes one discrete
+  > A [Field](http://spec.graphql.org/October2021/#Field) describes one discrete
   piece of information available to request within a selection set.
   """
 
