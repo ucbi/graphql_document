@@ -17,7 +17,7 @@ defmodule GraphQLDocument.Value do
           | %{optional(atom) => t}
           | variable
 
-  @typedoc "A usage of a defined variable within an operation"
+  @typedoc "A usage of a defined variable as a value"
   @type variable :: {:var, Name.t()}
 
   @doc """

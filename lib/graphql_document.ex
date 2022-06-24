@@ -4,7 +4,7 @@ defmodule GraphQLDocument do
 
   ## Syntax
 
-  `GraphQLDocument.to_string` converts nested lists/keyword lists into the analogous
+  `GraphQLDocument.operation/3` converts nested lists/keyword lists into the analogous
   GraphQL syntax.
 
   Simply write lists and keyword lists "as they look in GraphQL".
@@ -21,7 +21,7 @@ defmodule GraphQLDocument do
   ]]
   ```
 
-  `GraphQLDocument.to_string/1` will take that Elixir structure and return
+  `GraphQLDocument.operation/3` will take that Elixir structure and return
 
   ```elixir
   \"\"\"
@@ -43,7 +43,7 @@ defmodule GraphQLDocument do
   {args, fields}
   ```
 
-  For example, `GraphQLDocument.to_string/1` will take this Elixir structure
+  For example, `GraphQLDocument.operation/3` will take this Elixir structure
 
   ```elixir
   [query: [
@@ -69,7 +69,7 @@ defmodule GraphQLDocument do
 
   #### Argument types and Enums
 
-  `GraphQLDocument.to_string/1` will translate Elixir primitives into the
+  `GraphQLDocument.operation/3` will translate Elixir primitives into the
   analogous GraphQL primitive type for arguments.
 
   GraphQL enums can be expressed as an atom (e.g. `FOOT`) or in a tuple
@@ -252,7 +252,7 @@ defmodule GraphQLDocument do
     operation(:subscription, selection, opts)
   end
 
-  def operation(operation_type \\ :query, selection, opts \\ []) do
-    Operation.render(operation_type, selection, opts)
-  end
+  defdelegate operation(operation_type, selection, opts), to: Operation, as: :render
+  defdelegate operation(operation_type, selection), to: Operation, as: :render
+  defdelegate operation(selection), to: Operation, as: :render
 end
