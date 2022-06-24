@@ -10,9 +10,77 @@ defmodule GraphQLDocument do
     - `GraphQLDocument.mutation/2`
     - `GraphQLDocument.subscription/2`
 
-  ## Syntax
+  ## Getting Started
 
-  ### Object Fields
+  See `GraphQLDocument.query/2` for details about Elixir structures and how
+  they map to GraphQL syntax.
+
+  ## Not-yet-supported features
+
+  `GraphQLDocument` does not currently have the ability to generate Type System
+  definitions, although they technically belong in a Document.
+
+  """
+
+  alias GraphQLDocument.{Name, Operation, Fragment}
+
+  @doc """
+  If you want to express a field with directives or an alias, you must use this
+  function.
+
+  See `field/2` if you want to specify an alias.
+
+  ### Examples
+
+      iex> field(args: [id: 2], directives: [:debug], select: [:name])
+      {:__field__, [args: [id: 2], directives: [:debug], select: [:name]]}
+
+  """
+  def field(config), do: {:__field__, config}
+
+  @doc """
+  If you want to express a field with an alias, you must use this function.
+
+  See `field/1` if you want to specify directives without an alias.
+
+  ### Examples
+
+      iex> field(:user, args: [id: 2], directives: [:debug], select: [:name])
+      {:__field__, :user, [args: [id: 2], directives: [:debug], select: [:name]]}
+
+  """
+  def field(name, config), do: {:__field__, name, config}
+
+  @doc """
+  Wraps a variable name in a `GraphQLDocument`-friendly tuple.
+
+  ### Example
+
+      iex> var(:foo)
+      {:var, :foo}
+
+  """
+  def var(name) when is_binary(name) or is_atom(name), do: {:var, name}
+
+  @doc """
+  Creates a [TypeCondition](http://spec.graphql.org/October2021/#TypeCondition)
+  for a [Fragment](http://spec.graphql.org/October2021/#sec-Language.Fragments).
+
+  ### Example
+
+      iex> on(User)
+      {:on, User}
+
+  """
+  @spec on(Name.t()) :: Fragment.type_condition()
+  def on(name) when is_binary(name) or is_atom(name), do: {:on, name}
+
+  @doc """
+  Generate a GraphQL query document.
+
+  # Syntax
+
+  ## Object Fields
 
   To request a list of fields in an object, include them in a list.
 
@@ -34,7 +102,7 @@ defmodule GraphQLDocument do
   }
   ```
 
-  ### Arguments
+  ## Arguments
 
   When a field includes arguments, wrap the arguments and child fields in a
   tuple, like this.
@@ -62,7 +130,7 @@ defmodule GraphQLDocument do
   }
   ```
 
-  #### Argument types and Enums
+  ### Argument types and Enums
 
   Provide Elixir primitives (numbers, strings, lists, booleans, etc.) as
   arguments, and they'll be translated into the analogous GraphQL primitive.
@@ -100,7 +168,7 @@ defmodule GraphQLDocument do
   >
   > Alternatively, use the `GraphQLDocument.field/1` helper.
 
-  ### Nesting Fields
+  ## Nesting Fields
 
   Since GraphQL supports a theoretically infinite amount of nesting, you can also
   nest as much as needed in the Elixir structure.
@@ -143,7 +211,7 @@ defmodule GraphQLDocument do
   }
   ```
 
-  ### Aliases
+  ## Aliases
 
   In order to name a field with an alias, follow the syntax below using
   `GraphQLDocument.field/1`, where `me` is the alias and `user` is the field:
@@ -167,78 +235,28 @@ defmodule GraphQLDocument do
   }
   ```
 
-  ## Not-yet-supported features
-
-  `GraphQLDocument` does not currently have the ability to generate Type System
-  definitions, although they technically go in a Document.
-
-  """
-
-  alias GraphQLDocument.{Name, Operation, Fragment}
-
-  @doc """
-  If you want to express a field with directives or an alias, you must use
-  this function.
-
-  ### Examples
-
-      iex> field(args: [id: 2], select: [:name])
-      {:__field__, [args: [id: 2], select: [:name]]}
-
-      iex> field(:user, args: [id: 2], select: [:name])
-      {:__field__, :user, [args: [id: 2], select: [:name]]}
-
-  """
-  def field(config), do: {:__field__, config}
-
-  def field(name, config), do: {:__field__, name, config}
-
-  @doc """
-  Wraps a variable name in a `GraphQLDocument`-friendly tuple.
-
-  ### Example
-
-      iex> var(:foo)
-      {:var, :foo}
-
-  """
-  def var(name) when is_binary(name) or is_atom(name), do: {:var, name}
-
-  @doc """
-  Creates a [TypeCondition](http://spec.graphql.org/October2021/#TypeCondition)
-  for a [Fragment](http://spec.graphql.org/October2021/#sec-Language.Fragments).
-
-  ### Example
-
-      iex> on(User)
-      {:on, User}
-
-  """
-  @spec on(Name.t()) :: Fragment.type_condition()
-  def on(name) when is_binary(name) or is_atom(name), do: {:on, name}
-
-  @doc """
-  Generate a GraphQL query document.
   """
   def query(selections, opts \\ []) do
-    operation(:query, selections, opts)
+    Operation.render(:query, selections, opts)
   end
 
   @doc """
   Generate a GraphQL mutation document.
+
+  See `GraphQLDocument.query/2` for more details, as `subscription/2` is called
+  in the same way.
   """
   def mutation(selections, opts \\ []) do
-    operation(:mutation, selections, opts)
+    Operation.render(:mutation, selections, opts)
   end
 
   @doc """
   Generate a GraphQL subscription document.
+
+  See `GraphQLDocument.query/2` for more details, as `subscription/2` is called
+  in the same way.
   """
   def subscription(selections, opts \\ []) do
-    operation(:subscription, selections, opts)
+    Operation.render(:subscription, selections, opts)
   end
-
-  defdelegate operation(operation_type, selections, opts), to: Operation, as: :render
-  defdelegate operation(operation_type, selections), to: Operation, as: :render
-  defdelegate operation(selections), to: Operation, as: :render
 end
