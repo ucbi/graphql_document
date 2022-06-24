@@ -138,6 +138,48 @@ defmodule GraphQLDocument do
   }
   ```
 
+  ### Variables
+
+  To express a variable as a value, use `{:var, var_name}` syntax or the
+  `var/1` function.
+
+  The variable definition is passed as an option to `query/2`, `mutation/2`, or
+  `subscription/2`.
+
+  Variable types can take the form `Int`, `{Int, null: false}`, or `{Int, default: 1}`.
+
+  ```
+  query(
+    [
+      user: {
+        [id: var(:myId)],
+        [
+          :name,
+          friends: {
+            [type: {:var, :friendType}],
+            [:name]
+          }
+        ]
+      }
+    ],
+    variables: [
+      myId: {Int, null: false},
+      friendType: {String, default: "best"}
+    ]
+  )
+  ```
+
+  ```gql
+  query ($myId: Int!, $friendType: String = "best") {
+    user(id: $myId) {
+      name
+      friends(type: $friendType) {
+        name
+      }
+    }
+  }
+  ```
+
   ### Fragments
 
   To express a fragment, use the `:...` atom as the field name, similar to how
