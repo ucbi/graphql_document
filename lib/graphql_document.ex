@@ -4,91 +4,89 @@ defmodule GraphQLDocument do
 
   ## Syntax
 
-  `GraphQLDocument.operation/3` converts nested lists/keyword lists into the analogous
-  GraphQL syntax.
+  The functions in this library take **nested [keyword] lists** in the same
+  structure as GraphQL, and return that GraphQL document as a `String`.
 
-  Simply write lists and keyword lists "as they look in GraphQL".
+  These functions are available:
+
+    - `GraphQLDocument.query/2`
+    - `GraphQLDocument.mutation/2`
+    - `GraphQLDocument.subscription/2`
 
   Let's take a look at some examples.
 
   ### Object Fields
 
-  To request a list of fields in an object, include them in a list:
+  To request a list of fields in an object, include them in a list.
+
+  `GraphQLDocument.query/2` will take this Elixir structure and return the
+  GraphQL document below.
 
   ```elixir
-  [query: [
+  [
     human: [:name, :height]
-  ]]
+  ]
   ```
 
-  `GraphQLDocument.operation/3` will take that Elixir structure and return
-
-  ```elixir
-  \"\"\"
+  ```gql
   query {
     human {
       name
       height
     }
   }
-  \"\"\"
   ```
 
   ### Arguments
 
   When a field includes arguments, wrap the arguments and child fields in a
-  tuple, like this:
+  tuple, like this.
 
   ```elixir
   {args, fields}
   ```
 
-  For example, `GraphQLDocument.operation/3` will take this Elixir structure
+  `GraphQLDocument.query/2` will take this Elixir structure and return the
+  GraphQL document below.
 
   ```elixir
-  [query: [
-    human: {
-      [id: "1000"],
-      [:name, :height]
-    }
-  ]]
+  [human: {
+    [id: "1000"],
+    [:name, :height]
+  }]
   ```
 
-  and return this GraphQL document:
-
-  ```elixir
-  \"\"\"
+  ```gql
   query {
     human(id: "1000") {
       name
       height
     }
   }
-  \"\"\"
   ```
 
   #### Argument types and Enums
 
-  `GraphQLDocument.operation/3` will translate Elixir primitives into the
-  analogous GraphQL primitive type for arguments.
+  Provide Elixir primitives (numbers, strings, lists, booleans, etc.) as
+  arguments, and they'll be translated into the analogous GraphQL primitive.
 
-  GraphQL enums can be expressed as an atom (e.g. `FOOT`) or in a tuple
-  syntax, `{:enum, "FOOT"}`.
+  GraphQL enums can be expressed using `GraphQLDocument.var/1` or in a tuple
+  syntax, like this.
 
-  For example:
-
-  ```elixir
-  [query: [
-    human: {
-      [id: "1000"],
-      [:name, height: {[unit: FOOT], []}]
-    }
-  ]]
+  ```
+  {:enum, "FOOT"}
   ```
 
-  becomes
+  For example, this Elixir structure becomes the following GraphQL document.
 
   ```elixir
+  [human: {
+    [id: "1000"],
+    [:name, height: {[unit: FOOT], []}]
+  }]
+  ```
+
+  ```gql
   query {
     human(id: "1000") {
       name
@@ -97,15 +95,14 @@ defmodule GraphQLDocument do
   }
   ```
 
-  We can specify `[unit: FOOT]` as `[unit: {:enum, "FOOT"}]`, which
-  is useful for interpolating dynamic values into the query.
-
   > #### Expressing arguments without sub-fields {: .tip}
   >
   > Notice the slightly complicated syntax above: `height: {[unit: FOOT], []}`
   >
   > The way to include arguments is in an `{args, fields}` tuple. So if a
   > field has arguments but no sub-fields, put `[]` where the sub-fields go.
+  >
+  > Alternatively, use the `GraphQLDocument.field/1` helper.
 
   ### Nesting Fields
 
@@ -113,32 +110,31 @@ defmodule GraphQLDocument do
   nest as much as needed in the Elixir structure.
 
   Furthermore, we can take advantage of Elixir's syntax feature that allows a
-  regular list to be "mixed" with a keyword list:
+  regular list to be "mixed" with a keyword list.
 
   ```elixir
   # Elixir allows lists with a Keyword List as the final members
   [:name, :height, friends: [:name, :age]]
   ```
 
-  Using this syntax, we can build a nested structure like this:
+  Using this syntax, we can build a nested structure like this, which
+  translates to the GraphQL below.
 
   ```elixir
-  [query: [
-    human: {
-      [id: "1000"],
-      [
-        :name,
-        :height,
-        friends: {
-          [olderThan: 30],
-          [:name, :height]
-        }
-      ]
-    }
-  ]]
+  [human: {
+    [id: "1000"],
+    [
+      :name,
+      :height,
+      friends: {
+        [olderThan: 30],
+        [:name, :height]
+      }
+    ]
+  }]
   ```
 
-  ```elixir
+  ```gql
   query {
     human(id: "1000") {
       name
@@ -153,22 +149,20 @@ defmodule GraphQLDocument do
 
   ### Aliases
 
-  In order to name a field with an alias, follow the syntax below, where `me`
-  is the alias and `user` is the field:
+  In order to name a field with an alias, follow the syntax below using
+  `GraphQLDocument.field/1`, where `me` is the alias and `user` is the field:
 
   ```elixir
-  [query: [
-    me: {
-      :user
-      [id: 100],
-      [:name, :email]
-    }
-  ]]
+  [me: field(
+    :user,
+    args: [id: 100],
+    select: [:name, :email]
+  )]
   ```
 
   Which will emit this GraphQL document:
 
-  ```elixir
+  ```gql
   query {
     me: user(id: 100) {
       name
@@ -178,14 +172,7 @@ defmodule GraphQLDocument do
   ```
   """
 
-  alias GraphQLDocument.{Name, Operation}
-
-  @typedoc """
-  A GraphQL Type.
-
-  See: http://spec.graphql.org/October2021/#Type
-  """
-  @type type :: Name.t() | [type]
+  alias GraphQLDocument.Operation
 
   def field(config), do: {:__field__, config}
 
@@ -240,14 +227,23 @@ defmodule GraphQLDocument do
   """
   def inline_fragment(inline), do: {:__inline_fragment__, inline}
 
+  @doc """
+  Generate a GraphQL query document.
+  """
   def query(selection, opts \\ []) do
     operation(:query, selection, opts)
   end
 
+  @doc """
+  Generate a GraphQL mutation document.
+  """
   def mutation(selection, opts \\ []) do
     operation(:mutation, selection, opts)
   end
 
+  @doc """
+  Generate a GraphQL subscription document.
+  """
   def subscription(selection, opts \\ []) do
     operation(:subscription, selection, opts)
   end

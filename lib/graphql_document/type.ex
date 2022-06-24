@@ -1,6 +1,11 @@
 defmodule GraphQLDocument.Type do
   alias GraphQLDocument.Name
 
+  @typedoc """
+  A GraphQL Type.
+
+  See: http://spec.graphql.org/October2021/#Type
+  """
   @type t :: Name.t() | [t] | {Name.t() | [t], [option]}
 
   @typedoc """
