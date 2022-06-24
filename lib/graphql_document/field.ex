@@ -2,6 +2,17 @@ defmodule GraphQLDocument.Field do
   @moduledoc """
   > A [Field](http://spec.graphql.org/October2021/#Field) describes one discrete
   piece of information available to request within a selection set.
+
+  Scalar fields (e.g. Ints, Booleans, and Strings) are requested by their name.
+
+      :name
+      :email
+
+  Whereas object fields must be given with child fields as well.
+
+      [
+        user: [:name, email]
+      ]
   """
 
   defstruct [
@@ -31,21 +42,18 @@ defmodule GraphQLDocument.Field do
         birthday: [:month, :day], # with sub-fields, but no args
       ]
 
-  See `render/2` for examples of how the different Elixir expressions are
-  rendered as GraphQL syntax.
+  See `render/2` for examples of how different Elixir expressions are rendered
+  as GraphQL syntax.
   """
   @type t :: Name.t() | {Name.t(), [t]} | {Name.t(), {[Argument.t()], [t]}} | field_struct
 
   @typedoc """
   A struct containing all of the aspects of a Field expression.
 
-  If you want to express a field with directives or an alias, you must use
-  one of these.
-
-  Instead of creating `%Field{}` structs manually, use the `GraphQLDocument.field/1`
-  function.
-
-  See `render/2` for examples of how to use it.
+  > #### Internal Use Only {: .warning}
+  >
+  > Instead of creating `%Field{}` structs manually, use the
+  > `GraphQLDocument.field/1` function.
   """
   @type field_struct :: %Field{
           as: atom,
@@ -102,24 +110,74 @@ defmodule GraphQLDocument.Field do
     raise ArgumentError, message: "Expected a field; received #{inspect(field)}"
   end
 
-  @doc """
+  @doc ~S'''
   Returns a Field as iodata to be inserted into a Document.
 
   ### Examples
 
-      iex> render([])
+      iex> :email
+      ...> |> GraphQLDocument.Field.new()
+      ...> |> render(1)
       ...> |> IO.iodata_to_binary()
-      ""
+      "email"
 
-      iex> render_definitions([myInt: Int, debug: Boolean])
+      iex> {:self, [:name, :email]}
+      ...> |> GraphQLDocument.Field.new()
+      ...> |> render(1)
       ...> |> IO.iodata_to_binary()
-      " ($myInt: Int, $debug: Boolean)"
+      """
+      self {
+        name
+        email
+      }\
+      """
 
-      iex> render_definitions(lat: Float, lng: Float)
+      iex> {:user, {:__field__,
+      ...>   args: [id: 100],
+      ...>   select: [:name, :email]
+      ...> }}
+      ...> |> GraphQLDocument.Field.new()
+      ...> |> render(1)
       ...> |> IO.iodata_to_binary()
-      " ($lat: Float, $lng: Float)"
+      """
+      user(id: 100) {
+        name
+        email
+      }\
+      """
 
-  """
+      iex> {:user, {:__field__,
+      ...>   args: [id: 100],
+      ...>   directives: [log: [level: "warn"]],
+      ...>   select: [:name, :email]
+      ...> }}
+      ...> |> GraphQLDocument.Field.new()
+      ...> |> render(1)
+      ...> |> IO.iodata_to_binary()
+      """
+      user(id: 100) @log(level: "warn") {
+        name
+        email
+      }\
+      """
+
+      iex> {:me, {:__field__,
+      ...>   :user,
+      ...>   args: [id: 100],
+      ...>   directives: [log: [level: "warn"]],
+      ...>   select: [:name, :email]
+      ...> }}
+      ...> |> GraphQLDocument.Field.new()
+      ...> |> render(1)
+      ...> |> IO.iodata_to_binary()
+      """
+      me: user(id: 100) @log(level: "warn") {
+        name
+        email
+      }\
+      """
+
+  '''
   @spec render(t, pos_integer) :: iolist
   def render(field, indent_level) do
     [
