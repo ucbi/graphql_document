@@ -1,10 +1,11 @@
 defmodule GraphQLDocument.Type do
   @moduledoc """
-  A [Type](http://spec.graphql.org/October2021/#sec-Type-References) references
-  a [TypeDefinition](http://spec.graphql.org/October2021/#sec-Types)
+  A [Type](http://spec.graphql.org/October2021/#sec-Type-References) is a
+  reference to a
+  [TypeDefinition](http://spec.graphql.org/October2021/#sec-Types)
   defined by a GraphQL service.
 
-  These are used in `GraphQLDocument` when defining Variables. (See `GraphQLDocument.Variable`)
+  Types are used in `GraphQLDocument` when defining Variables. (See `GraphQLDocument.Variable`)
   """
 
   alias GraphQLDocument.Name

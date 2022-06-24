@@ -1,23 +1,91 @@
 defmodule GraphQLDocument.Fragment do
+  @moduledoc """
+  > [Fragments](http://spec.graphql.org/October2021/#sec-Language.Fragments)
+  > are the primary unit of composition in GraphQL.
+  >
+  > Fragments allow for the reuse of common repeated selections of fields,
+  > reducing duplicated text in the document. Inline Fragments can be used
+  > directly within a selection to condition upon a type condition when querying
+  > against an interface or union.
+
+  See `render_definitions/1` for details about rendering
+  [FragmentDefinitions](http://spec.graphql.org/October2021/#FragmentDefinition).
+
+  See `render/2` for details about rendering a
+  [FragmentSpread](http://spec.graphql.org/October2021/#FragmentSpread) or
+  [InlineFragment](http://spec.graphql.org/October2021/#sec-Inline-Fragments).
+  """
   alias GraphQLDocument.{Directive, Name, Selection}
 
   @type t :: {:..., spread | inline}
 
-  @typedoc "A definition of a fragment"
+  @typedoc """
+  These are given in the `fragments` key of the Operation options. (See
+  `t:GraphQLDocument.Operation.option/0`.)
+
+  This is not the _usage_ of the Fragment (in a Selection set) but
+  rather defining to be used in the rest of the Document.
+
+  ### Examples
+
+      GraphQLDocument.query(
+        [...],
+        fragments: [
+          friendFields: {
+            on(User),
+            [
+              :id,
+              :name,
+              profilePic: field(args: [size: 50])
+            ]
+          }
+        ]
+      )
+
+  """
   @type definition ::
           {name,
            {type_condition, [Selection.t()]}
            | {type_condition, [Directive.t()], [Selection.t()]}}
 
-  @typedoc "The name of a fragment"
+  @typedoc """
+  The name of a fragment. An atom or string.
+  """
   @type name :: Name.t()
 
-  @typedoc "The type to which the fragment applies"
+  @typedoc """
+  The type to which the fragment applies.
+
+  `{:on, Person}` is rendered as `"on Person"`.
+
+  Instead of using `{:on, type}` tuples directly, you can use `GraphQLDocument.on/1`:
+
+      iex> import GraphQLDocument
+      iex> on(Person)
+      {:on, Person}
+
+  """
   @type type_condition :: {:on, Name.t()}
 
   @typedoc """
   A fragment spread is injecting `...fragmentName` into a request to instruct
   the server to return the fields in the fragment.
+
+  Fragment spreads are expressed with the `:...` atom to match GraphQL syntax.
+  They are often inserted among other fields as in `...: :friendFields` below.
+
+      GraphQLDocument.query(
+        [
+          self: [
+            :name,
+            :email,
+            ...: :friendFields
+          ]
+        ],
+        fragments: [
+          friendFields: {...}
+        ]
+      )
   """
   @type spread :: {:..., name} | {:..., {name, [Directive.t()]}}
 
@@ -37,7 +105,15 @@ defmodule GraphQLDocument.Fragment do
           | {type_condition, [Directive.t()], [Selection.t()]}
 
   @doc ~S'''
-  Returns a Fragment as an iolist to be inserted in a Document.
+  Returns a
+  [FragmentSpread](http://spec.graphql.org/October2021/#FragmentSpread) or
+  [InlineFragment](http://spec.graphql.org/October2021/#sec-Inline-Fragments)
+  as an iolist to be inserted in a Document.
+
+  ## Fragment Spreads
+
+  To express a Fragment Spread, provide the name of the fragment as an atom or string.
+  If there are directives, provide a `{name, directives}` tuple.
 
   ### Examples
 
@@ -48,6 +124,17 @@ defmodule GraphQLDocument.Fragment do
       iex> render({:friendFields, [skip: [if: {:var, :antisocial}]]}, 1)
       ...> |> IO.iodata_to_binary()
       "...friendFields @skip(if: $antisocial)"
+
+  ## Inline Fragments
+
+  To express an Inline Fragment, provide an `{{:on, Type}, selections}` tuple.
+  If there are directives, provide `{{:on, Type}, directives, selections}`.
+
+  The `{:on, Type}` syntax can be substituted with `GraphQLDocument.on/1`:
+
+      on(Type)
+
+  ### Examples
 
       iex> render(
       ...>   {
@@ -145,7 +232,7 @@ defmodule GraphQLDocument.Fragment do
   ### Examples
 
       iex> render_definitions(friendFields: {
-      ...>   User,
+      ...>   {:on, User},
       ...>   [:id, :name, profilePic: {[size: 50], []}]
       ...> })
       ...> |> IO.iodata_to_binary()
@@ -167,8 +254,8 @@ defmodule GraphQLDocument.Fragment do
     for {name, definition} <- fragments do
       {on, directives, selection} =
         case definition do
-          {on, selection} -> {on, [], selection}
-          {on, directives, selection} -> {on, directives, selection}
+          {{:on, on}, selection} -> {on, [], selection}
+          {{:on, on}, directives, selection} -> {on, directives, selection}
         end
 
       [

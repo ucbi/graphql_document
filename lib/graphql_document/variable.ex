@@ -19,7 +19,7 @@ defmodule GraphQLDocument.Variable do
   These are given in the `variables` key of the Operation options. (See
   `t:GraphQLDocument.Operation.option/0`.)
 
-  This is not the _usage_ of the variable (as the value of an Argument) but
+  This is not the _usage_ of the Variable (as the Value of an Argument) but
   rather defining its Name and Type to be used in the rest of the Document.
 
   ### Examples

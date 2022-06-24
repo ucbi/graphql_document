@@ -312,7 +312,7 @@ defmodule GraphQLDocumentTest do
                ]}
           ],
           fragments: [
-            friendFields: {:User, [:id, :name, profilePic: {[size: 50], []}]}
+            friendFields: {on(User), [:id, :name, profilePic: {[size: 50], []}]}
           ]
         )
 

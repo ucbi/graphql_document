@@ -33,21 +33,12 @@ defmodule GraphQLDocument.Operation do
   """
   @spec render(operation_type, [Selection.t()], [option]) :: String.t()
   def render(operation_type \\ :query, selections, opts \\ [])
-      when is_atom(operation_type) and is_list(selections) and is_list(opts) do
+      when is_atom(operation_type) and (is_list(selections) or is_map(selections)) and
+             is_list(opts) do
     if operation_type not in [:query, :mutation, :subscription] do
       raise ArgumentError,
         message:
-          "[GraphQLDocument] operation_type must be :query, :mutation, or :subscription. Received #{inspect(operation_type)}"
-    end
-
-    unless is_list(selections) or is_map(selections) do
-      raise ArgumentError,
-        message: """
-        Expected a list of Selections.
-
-        Received: `#{inspect(selections)}`
-        Did you forget to enclose it in a list?
-        """
+          "operation_type must be :query, :mutation, or :subscription. Received #{inspect(operation_type)}"
     end
 
     variable_definitions = Keyword.get(opts, :variables, [])
