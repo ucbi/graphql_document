@@ -176,6 +176,19 @@ defmodule GraphQLDocument do
 
   alias GraphQLDocument.{Name, Operation, Fragment}
 
+  @doc """
+  If you want to express a field with directives or an alias, you must use
+  this function.
+
+  ### Examples
+
+      iex> field(args: [id: 2], select: [:name])
+      {:__field__, [args: [id: 2], select: [:name]]}
+
+      iex> field(:user, args: [id: 2], select: [:name])
+      {:__field__, :user, [args: [id: 2], select: [:name]]}
+
+  """
   def field(config), do: {:__field__, config}
 
   def field(name, config), do: {:__field__, name, config}

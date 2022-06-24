@@ -1,21 +1,22 @@
 defmodule GraphQLDocument.Selection do
-  alias GraphQLDocument.{Argument, Field, Fragment, Name}
-
-  @typedoc """
+  @moduledoc """
   A [Selection](http://spec.graphql.org/October2021/#Selection) is
-  a field or fragment to be returned.
+  the list of
+  [Fields](http://spec.graphql.org/October2021/#sec-Language.Fields) or
+  [Fragments](http://spec.graphql.org/October2021/#sec-Language.Fragments)
+  to be returned in an object.
   """
-  @type t :: field | Fragment.spread() | Fragment.inline()
+
+  alias GraphQLDocument.{Field, Fragment}
 
   @typedoc """
-  A [field](http://spec.graphql.org/October2021/#Field) describes one discrete
-  piece of information available to request within a selection set.
   """
-  @type field :: Name.t() | {Name.t(), [field]} | {Name.t(), {[Argument.t()], t}}
+  @type t :: Field.t() | Fragment.spread() | Fragment.inline()
 
   @doc ~S'''
-  Returns a [SelectionSet](http://spec.graphql.org/October2021/#SelectionSet) as
-  iodata to be inserted into a Document.
+  Returns the list of selections in
+  a [SelectionSet](http://spec.graphql.org/October2021/#SelectionSet) as iodata
+  to be inserted into a Document.
 
   ### Examples
 
