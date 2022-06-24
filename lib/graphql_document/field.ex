@@ -8,7 +8,7 @@ defmodule GraphQLDocument.Field do
   ]
 
   alias __MODULE__
-  alias GraphQLDocument.{Argument, Directive, Name, SelectionSet}
+  alias GraphQLDocument.{Argument, Directive, Name, Selection}
 
   @type t :: %Field{
           as: atom,
@@ -23,18 +23,18 @@ defmodule GraphQLDocument.Field do
     })
   end
 
-  def new({name, selection}) when is_list(selection) do
+  def new({name, selections}) when is_list(selections) do
     struct!(Field, %{
       name: Name.valid_name!(name),
-      select: selection
+      select: selections
     })
   end
 
-  def new({name, {args, selection}}) when is_list(args) and is_list(selection) do
+  def new({name, {args, selections}}) when is_list(args) and is_list(selections) do
     struct!(Field, %{
       name: Name.valid_name!(name),
       args: args,
-      select: selection
+      select: selections
     })
   end
 
@@ -74,7 +74,7 @@ defmodule GraphQLDocument.Field do
       Name.valid_name!(field.name),
       Argument.render(field.args),
       Directive.render(field.directives),
-      SelectionSet.render(field.select, indent_level)
+      Selection.render(field.select, indent_level)
     ]
   end
 end

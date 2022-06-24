@@ -217,25 +217,25 @@ defmodule GraphQLDocument do
   @doc """
   Generate a GraphQL query document.
   """
-  def query(selection, opts \\ []) do
-    operation(:query, selection, opts)
+  def query(selections, opts \\ []) do
+    operation(:query, selections, opts)
   end
 
   @doc """
   Generate a GraphQL mutation document.
   """
-  def mutation(selection, opts \\ []) do
-    operation(:mutation, selection, opts)
+  def mutation(selections, opts \\ []) do
+    operation(:mutation, selections, opts)
   end
 
   @doc """
   Generate a GraphQL subscription document.
   """
-  def subscription(selection, opts \\ []) do
-    operation(:subscription, selection, opts)
+  def subscription(selections, opts \\ []) do
+    operation(:subscription, selections, opts)
   end
 
-  defdelegate operation(operation_type, selection, opts), to: Operation, as: :render
-  defdelegate operation(operation_type, selection), to: Operation, as: :render
-  defdelegate operation(selection), to: Operation, as: :render
+  defdelegate operation(operation_type, selections, opts), to: Operation, as: :render
+  defdelegate operation(operation_type, selections), to: Operation, as: :render
+  defdelegate operation(selections), to: Operation, as: :render
 end

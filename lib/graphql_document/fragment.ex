@@ -1,13 +1,13 @@
 defmodule GraphQLDocument.Fragment do
-  alias GraphQLDocument.{Directive, Name, SelectionSet}
+  alias GraphQLDocument.{Directive, Name, Selection}
 
   @type t :: {:..., spread | inline}
 
   @typedoc "A definition of a fragment"
   @type definition ::
           {name,
-           {type_condition, SelectionSet.t()}
-           | {type_condition, [Directive.t()], SelectionSet.t()}}
+           {type_condition, [Selection.t()]}
+           | {type_condition, [Directive.t()], [Selection.t()]}}
 
   @typedoc "The name of a fragment"
   @type name :: Name.t()
@@ -31,10 +31,10 @@ defmodule GraphQLDocument.Fragment do
   subset of fields.
   """
   @type inline ::
-          SelectionSet.t()
-          | {[Directive.t()], SelectionSet.t()}
-          | {type_condition, SelectionSet.t()}
-          | {type_condition, [Directive.t()], SelectionSet.t()}
+          [Selection.t()]
+          | {[Directive.t()], [Selection.t()]}
+          | {type_condition, [Selection.t()]}
+          | {type_condition, [Directive.t()], [Selection.t()]}
 
   @typedoc "The 'envelope' that fragments are wrapped in: a 2-tuple where the first element is `:...`"
   @type envelope(t) :: {:..., t}
@@ -180,7 +180,7 @@ defmodule GraphQLDocument.Fragment do
         " on ",
         Name.valid_name!(on),
         Directive.render(directives),
-        SelectionSet.render(selection, 1)
+        Selection.render(selection, 1)
       ]
     end
   end
@@ -194,7 +194,7 @@ defmodule GraphQLDocument.Fragment do
     ]
   end
 
-  @spec render_inline(Name.t() | nil, [Directive.t()], SelectionSet.t(), integer) :: iolist
+  @spec render_inline(Name.t() | nil, [Directive.t()], [Selection.t()], integer) :: iolist
   defp render_inline(on, directives, selection, indent_level) when indent_level > 0 do
     [
       "...",
@@ -204,7 +204,7 @@ defmodule GraphQLDocument.Fragment do
         []
       end,
       Directive.render(directives),
-      SelectionSet.render(selection, indent_level)
+      Selection.render(selection, indent_level)
     ]
   end
 end

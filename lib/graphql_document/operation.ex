@@ -1,5 +1,5 @@
 defmodule GraphQLDocument.Operation do
-  alias GraphQLDocument.{Directive, Fragment, SelectionSet, Variable}
+  alias GraphQLDocument.{Directive, Fragment, Selection, Variable}
 
   @typedoc "See: http://spec.graphql.org/October2021/#OperationType"
   @type operation_type :: :query | :mutation | :subscription
@@ -31,21 +31,21 @@ defmodule GraphQLDocument.Operation do
       \"\"\"
 
   """
-  @spec render(operation_type, SelectionSet.t(), [operation_option]) :: String.t()
-  def render(operation_type \\ :query, selection, opts \\ [])
-      when is_atom(operation_type) and is_list(selection) and is_list(opts) do
+  @spec render(operation_type, [Selection.t()], [operation_option]) :: String.t()
+  def render(operation_type \\ :query, selections, opts \\ [])
+      when is_atom(operation_type) and is_list(selections) and is_list(opts) do
     if operation_type not in [:query, :mutation, :subscription] do
       raise ArgumentError,
         message:
           "[GraphQLDocument] operation_type must be :query, :mutation, or :subscription. Received #{inspect(operation_type)}"
     end
 
-    unless is_list(selection) or is_map(selection) do
+    unless is_list(selections) or is_map(selections) do
       raise ArgumentError,
         message: """
-        [GraphQLDocument] Expected a list of fields.
+        Expected a list of Selections.
 
-        Received: `#{inspect(selection)}`
+        Received: `#{inspect(selections)}`
         Did you forget to enclose it in a list?
         """
     end
@@ -58,7 +58,7 @@ defmodule GraphQLDocument.Operation do
       to_string(operation_type),
       Variable.render(variables),
       Directive.render(directives),
-      SelectionSet.render(selection, 1),
+      Selection.render(selections, 1),
       Fragment.render_definitions(fragments)
     ])
   end
