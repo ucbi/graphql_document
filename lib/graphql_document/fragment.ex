@@ -1,23 +1,91 @@
 defmodule GraphQLDocument.Fragment do
-  alias GraphQLDocument.{Directive, Name, SelectionSet}
+  @moduledoc """
+  > [Fragments](http://spec.graphql.org/October2021/#sec-Language.Fragments)
+  > are the primary unit of composition in GraphQL.
+  >
+  > Fragments allow for the reuse of common repeated selections of fields,
+  > reducing duplicated text in the document. Inline Fragments can be used
+  > directly within a selection to condition upon a type condition when querying
+  > against an interface or union.
+
+  See `render_definitions/1` for details about rendering
+  [FragmentDefinitions](http://spec.graphql.org/October2021/#FragmentDefinition).
+
+  See `render/2` for details about rendering a
+  [FragmentSpread](http://spec.graphql.org/October2021/#FragmentSpread) or
+  [InlineFragment](http://spec.graphql.org/October2021/#sec-Inline-Fragments).
+  """
+  alias GraphQLDocument.{Directive, Name, Selection}
 
   @type t :: {:..., spread | inline}
 
-  @typedoc "A definition of a fragment"
+  @typedoc """
+  These are given in the `fragments` key of the Operation options. (See
+  `t:GraphQLDocument.Operation.option/0`.)
+
+  This is not the _usage_ of the Fragment (in a Selection set) but
+  rather defining to be used in the rest of the Document.
+
+  ### Examples
+
+      GraphQLDocument.query(
+        [...],
+        fragments: [
+          friendFields: {
+            on(User),
+            [
+              :id,
+              :name,
+              profilePic: field(args: [size: 50])
+            ]
+          }
+        ]
+      )
+
+  """
   @type definition ::
           {name,
-           {type_condition, SelectionSet.t()}
-           | {type_condition, [Directive.t()], SelectionSet.t()}}
+           {type_condition, [Selection.t()]}
+           | {type_condition, [Directive.t()], [Selection.t()]}}
 
-  @typedoc "The name of a fragment"
+  @typedoc """
+  The name of a fragment. An atom or string.
+  """
   @type name :: Name.t()
 
-  @typedoc "The type to which the fragment applies"
+  @typedoc """
+  The type to which the fragment applies.
+
+  `{:on, Person}` is rendered as `"on Person"`.
+
+  Instead of using `{:on, type}` tuples directly, you can use `GraphQLDocument.on/1`:
+
+      iex> import GraphQLDocument
+      iex> on(Person)
+      {:on, Person}
+
+  """
   @type type_condition :: {:on, Name.t()}
 
   @typedoc """
   A fragment spread is injecting `...fragmentName` into a request to instruct
   the server to return the fields in the fragment.
+
+  Fragment spreads are expressed with the `:...` atom to match GraphQL syntax.
+  They are often inserted among other fields as in `...: :friendFields` below.
+
+      GraphQLDocument.query(
+        [
+          self: [
+            :name,
+            :email,
+            ...: :friendFields
+          ]
+        ],
+        fragments: [
+          friendFields: {...}
+        ]
+      )
   """
   @type spread :: {:..., name} | {:..., {name, [Directive.t()]}}
 
@@ -31,16 +99,21 @@ defmodule GraphQLDocument.Fragment do
   subset of fields.
   """
   @type inline ::
-          SelectionSet.t()
-          | {[Directive.t()], SelectionSet.t()}
-          | {type_condition, SelectionSet.t()}
-          | {type_condition, [Directive.t()], SelectionSet.t()}
-
-  @typedoc "The 'envelope' that fragments are wrapped in: a 2-tuple where the first element is `:...`"
-  @type envelope(t) :: {:..., t}
+          [Selection.t()]
+          | {[Directive.t()], [Selection.t()]}
+          | {type_condition, [Selection.t()]}
+          | {type_condition, [Directive.t()], [Selection.t()]}
 
   @doc ~S'''
-  Returns the fragment as an iolist ready to be rendered in a GraphQL document.
+  Returns a
+  [FragmentSpread](http://spec.graphql.org/October2021/#FragmentSpread) or
+  [InlineFragment](http://spec.graphql.org/October2021/#sec-Inline-Fragments)
+  as an iolist to be inserted in a Document.
+
+  ## Fragment Spreads
+
+  To express a Fragment Spread, provide the name of the fragment as an atom or string.
+  If there are directives, provide a `{name, directives}` tuple.
 
   ### Examples
 
@@ -51,6 +124,17 @@ defmodule GraphQLDocument.Fragment do
       iex> render({:friendFields, [skip: [if: {:var, :antisocial}]]}, 1)
       ...> |> IO.iodata_to_binary()
       "...friendFields @skip(if: $antisocial)"
+
+  ## Inline Fragments
+
+  To express an Inline Fragment, provide an `{{:on, Type}, selections}` tuple.
+  If there are directives, provide `{{:on, Type}, directives, selections}`.
+
+  The `{:on, Type}` syntax can be substituted with `GraphQLDocument.on/1`:
+
+      on(Type)
+
+  ### Examples
 
       iex> render(
       ...>   {
@@ -148,7 +232,7 @@ defmodule GraphQLDocument.Fragment do
   ### Examples
 
       iex> render_definitions(friendFields: {
-      ...>   User,
+      ...>   {:on, User},
       ...>   [:id, :name, profilePic: {[size: 50], []}]
       ...> })
       ...> |> IO.iodata_to_binary()
@@ -170,17 +254,17 @@ defmodule GraphQLDocument.Fragment do
     for {name, definition} <- fragments do
       {on, directives, selection} =
         case definition do
-          {on, selection} -> {on, [], selection}
-          {on, directives, selection} -> {on, directives, selection}
+          {{:on, on}, selection} -> {on, [], selection}
+          {{:on, on}, directives, selection} -> {on, directives, selection}
         end
 
       [
         "\n\nfragment ",
-        Name.valid_name!(name),
+        Name.render!(name),
         " on ",
-        Name.valid_name!(on),
+        Name.render!(on),
         Directive.render(directives),
-        SelectionSet.render(selection, 1)
+        Selection.render(selection, 1)
       ]
     end
   end
@@ -189,22 +273,22 @@ defmodule GraphQLDocument.Fragment do
   defp render_spread(name, directives \\ []) do
     [
       "...",
-      Name.valid_name!(name),
+      Name.render!(name),
       Directive.render(directives)
     ]
   end
 
-  @spec render_inline(Name.t() | nil, [Directive.t()], SelectionSet.t(), integer) :: iolist
+  @spec render_inline(Name.t() | nil, [Directive.t()], [Selection.t()], integer) :: iolist
   defp render_inline(on, directives, selection, indent_level) when indent_level > 0 do
     [
       "...",
       if on do
-        [" on ", Name.valid_name!(on)]
+        [" on ", Name.render!(on)]
       else
         []
       end,
       Directive.render(directives),
-      SelectionSet.render(selection, indent_level)
+      Selection.render(selection, indent_level)
     ]
   end
 end

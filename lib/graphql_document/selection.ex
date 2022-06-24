@@ -1,22 +1,22 @@
-defmodule GraphQLDocument.SelectionSet do
-  alias GraphQLDocument.{Argument, Field, Fragment, Name}
+defmodule GraphQLDocument.Selection do
+  @moduledoc """
+  A [Selection](http://spec.graphql.org/October2021/#Selection) is
+  the list of
+  [Fields](http://spec.graphql.org/October2021/#sec-Language.Fields) or
+  [Fragments](http://spec.graphql.org/October2021/#sec-Language.Fragments)
+  to be returned in an object.
+  """
+
+  alias GraphQLDocument.{Field, Fragment}
 
   @typedoc """
-  A SelectionSet defines the set of fields in an object to be returned.
-
-  See: http://spec.graphql.org/October2021/#SelectionSet
   """
-  @type t :: [field | Fragment.spread() | Fragment.inline()]
-
-  @typedoc """
-  A field describes one discrete piece of information available to request within a selection set.
-
-  See: http://spec.graphql.org/October2021/#Field
-  """
-  @type field :: Name.t() | {Name.t(), [field]} | {Name.t(), {[Argument.t()], t}}
+  @type t :: Field.t() | Fragment.spread() | Fragment.inline()
 
   @doc ~S'''
-  Return a SelectionSet as iodata to be rendered in a GraphQL document.
+  Returns the list of selections in
+  a [SelectionSet](http://spec.graphql.org/October2021/#SelectionSet) as iodata
+  to be inserted into a Document.
 
   ### Examples
 
@@ -69,14 +69,14 @@ defmodule GraphQLDocument.SelectionSet do
       ** (ArgumentError) indent_level must be at least 1; received 0
 
   '''
-  @spec render(t, integer) :: iolist
-  def render(selection, indent_level)
-      when (is_list(selection) or is_map(selection)) and indent_level > 0 do
+  @spec render([t], integer) :: iolist
+  def render(selections, indent_level)
+      when (is_list(selections) or is_map(selections)) and indent_level > 0 do
     indent = List.duplicate("  ", indent_level)
 
     rendered =
-      selection
-      |> Enum.map_join("\n", fn
+      selections
+      |> Enum.map(fn
         {:..., fragment} ->
           [
             indent,
@@ -91,8 +91,9 @@ defmodule GraphQLDocument.SelectionSet do
             |> Field.render(indent_level + 1)
           ]
       end)
+      |> Enum.intersperse(?\n)
 
-    if Enum.any?(selection) do
+    if Enum.any?(selections) do
       [
         ?\s,
         ?{,
@@ -112,12 +113,12 @@ defmodule GraphQLDocument.SelectionSet do
       message: "indent_level must be at least 1; received #{inspect(indent_level)}"
   end
 
-  def render(selection, _indent_level) do
+  def render(selections, _indent_level) do
     raise ArgumentError,
       message: """
       Expected a list of fields.
 
-      Received: `#{inspect(selection)}`
+      Received: `#{inspect(selections)}`
       Did you forget to enclose it in a list?
       """
   end

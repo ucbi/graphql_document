@@ -1,15 +1,20 @@
 defmodule GraphQLDocument.Directive do
+  @moduledoc """
+  > [Directives](http://spec.graphql.org/October2021/#Directives) provide a way
+  > to describe alternate runtime execution and type validation behavior in a
+  > GraphQL document.
+
+  A Directive might be simply a name, or it can have arguments.
+  See `render/1` for examples.
+  """
+
   alias GraphQLDocument.{Argument, Name}
 
-  @typedoc """
-  A GraphQL directive.
-
-  See: http://spec.graphql.org/October2021/#Argument
-  """
+  @typedoc "A GraphQL directive."
   @type t :: Name.t() | {Name.t(), [Argument.t()]}
 
   @doc """
-  Return a list of directives as iodata to be rendered in a GraphQL document.
+  Returns a list of directives as iodata to be inserted into a Document.
 
   ### Examples
 
@@ -39,13 +44,13 @@ defmodule GraphQLDocument.Directive do
           if Enum.any?(args) do
             [
               ?@,
-              Name.valid_name!(name),
+              Name.render!(name),
               Argument.render(args)
             ]
           else
             [
               ?@,
-              Name.valid_name!(name)
+              Name.render!(name)
             ]
           end
         end)

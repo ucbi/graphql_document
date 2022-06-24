@@ -1,54 +1,77 @@
 defmodule GraphQLDocument.Name do
-  @typedoc """
-  A GraphQL name. Must start with a letter or underscore. May contain letters, underscores, and digits.
+  @moduledoc """
+  The GraphQL specification defines a
+  [Name](http://spec.graphql.org/October2021/#Name) as starting with a letter
+  or underscore. It may only contain letters, underscores, and digits.
 
-  See: http://spec.graphql.org/October2021/#Name
+  The names of
+  [Fields](http://spec.graphql.org/October2021/#sec-Language.Fields),
+  [Types](http://spec.graphql.org/October2021/#Type),
+  [Arguments](http://spec.graphql.org/October2021/#sec-Language.Arguments),
+  [Variables](http://spec.graphql.org/October2021/#sec-Language.Variables),
+  [Directives](http://spec.graphql.org/October2021/#sec-Language.Directives),
+  [Fragments](http://spec.graphql.org/October2021/#sec-Language.Fragments),
+  and [Enums](http://spec.graphql.org/October2021/#sec-Enums) must all
+  conform to this definition.
+  """
+
+  @typedoc """
+  A Name can be expressed as an atom or string.
   """
   @type t :: atom | String.t()
 
   @doc """
-  Given a name, returns it back as a string if it's valid.
+  Returns a Name as a string to be inserted into a Document.
 
-  Raises an `ArgumentError` if it's not valid.
+  Raises an `ArgumentError` if the name doesn't start with a letter or
+  underscore, or if it contains any characters other than letters, underscores,
+  or digits.
 
   ### Examples
 
-      iex> valid_name!("_QuiGonJinn")
+      iex> render!("_QuiGonJinn")
       "_QuiGonJinn"
 
-      iex> valid_name!(ObiWan)
+      iex> render!(ObiWan)
       "ObiWan"
 
-      iex> valid_name!(:DinDjarin)
+      iex> render!(:DinDjarin)
       "DinDjarin"
 
-      iex> valid_name!(:leia_organa)
+      iex> render!(:leia_organa)
       "leia_organa"
 
-      iex> valid_name!("0_StartingDigit")
+      iex> render!("0_StartingDigit")
       ** (ArgumentError) 0_StartingDigit is not a valid GraphQL name
 
-      iex> valid_name!("_Qui-Gon Jinn")
+      iex> render!("_Qui-Gon Jinn")
       ** (ArgumentError) _Qui-Gon Jinn is not a valid GraphQL name
 
-      iex> valid_name!("*;-!")
+      iex> render!("*;-!")
       ** (ArgumentError) *;-! is not a valid GraphQL name
 
   """
-  @spec valid_name!(atom | String.t()) :: String.t()
-  def valid_name!(name) when is_binary(name) do
+  @spec render!(atom | String.t()) :: String.t()
+  def render!(name) when is_binary(name) do
     if valid?(name) do
       name
     else
+      name_description =
+        if name == "" do
+          "[empty string]"
+        else
+          name
+        end
+
       raise ArgumentError,
-        message: "#{name} is not a valid GraphQL name"
+        message: "#{name_description} is not a valid GraphQL name"
     end
   end
 
-  def valid_name!(atom) when is_atom(atom) do
+  def render!(atom) when is_atom(atom) do
     case Kernel.to_string(atom) do
-      "Elixir." <> _ -> valid_name!(Macro.to_string(atom))
-      string -> valid_name!(string)
+      "Elixir." <> _ -> render!(Macro.to_string(atom))
+      string -> render!(string)
     end
   end
 

@@ -6,7 +6,7 @@ defmodule GraphQLDocumentTest do
   describe "operation/1" do
     test "builds a GraphQL syntax string from an Elixir data structure" do
       result =
-        GraphQLDocument.operation(
+        GraphQLDocument.query(
           invoices: {
             [customer: "123456"],
             [
@@ -42,11 +42,7 @@ defmodule GraphQLDocumentTest do
     end
 
     test "it's possible to build a query for a mutation that returns a scalar rather than an object" do
-      result =
-        GraphQLDocument.operation(
-          :mutation,
-          launch_rockets: {[where: "outer space"], []}
-        )
+      result = GraphQLDocument.mutation(launch_rockets: {[where: "outer space"], []})
 
       expected = """
       mutation {
@@ -57,8 +53,7 @@ defmodule GraphQLDocumentTest do
       assert result == expected
 
       result =
-        GraphQLDocument.operation(
-          :query,
+        GraphQLDocument.query(
           getThings: {
             [
               zip: "123",
@@ -86,8 +81,7 @@ defmodule GraphQLDocumentTest do
 
     test "nested arguments are supported" do
       result =
-        GraphQLDocument.operation(
-          :mutation,
+        GraphQLDocument.mutation(
           launch_rockets: {
             [when: %{day: "tomorrow", time: [hour: 9, minute: 3, second: 30]}],
             [:status]
@@ -107,7 +101,7 @@ defmodule GraphQLDocumentTest do
 
     test "empty args" do
       result =
-        GraphQLDocument.operation([{"app_stats", {[], [:registrations, :logins, :complaints]}}])
+        GraphQLDocument.query([{"app_stats", {[], [:registrations, :logins, :complaints]}}])
 
       expected = """
       query {
@@ -123,7 +117,7 @@ defmodule GraphQLDocumentTest do
     end
 
     test "return values that are an empty list are ignored" do
-      result = GraphQLDocument.operation(:mutation, launch_rockets: {[when: "now"], []})
+      result = GraphQLDocument.mutation(launch_rockets: {[when: "now"], []})
 
       expected = """
       mutation {
@@ -133,7 +127,7 @@ defmodule GraphQLDocumentTest do
 
       assert result == expected
 
-      result = GraphQLDocument.operation(:mutation, launch_rockets: {[], []})
+      result = GraphQLDocument.mutation(launch_rockets: {[], []})
 
       expected = """
       mutation {
@@ -144,11 +138,11 @@ defmodule GraphQLDocumentTest do
       assert result == expected
     end
 
-    test "pass enum argument as an {:enum, string} tuple" do
+    test "pass enum argument as an atom" do
       result =
-        GraphQLDocument.operation(
+        GraphQLDocument.query(
           get_rockets: {
-            [rocket_type: {:enum, "MASSIVE"}],
+            [rocket_type: MASSIVE],
             [:status]
           }
         )
@@ -166,12 +160,11 @@ defmodule GraphQLDocumentTest do
 
     test "query injection is not possible via enums" do
       assert_raise ArgumentError, fn ->
-        GraphQLDocument.operation(
-          :mutation,
+        GraphQLDocument.mutation(
           createPost: {
             [
               title: "Test",
-              category: {:enum, "MUSIC) {\n    id\n  } \n  launchRockets(when: NOW"}
+              category: :"MUSIC) {\n    id\n  } \n  launchRockets(when: NOW"
             ],
             [:id]
           }
@@ -179,21 +172,9 @@ defmodule GraphQLDocumentTest do
       end
     end
 
-    test "cannot pass atoms as arguments" do
-      assert_raise ArgumentError, fn ->
-        GraphQLDocument.operation(
-          :query,
-          posts: {
-            [category: MUSIC],
-            [:id, :title]
-          }
-        )
-      end
-    end
-
     test "list and object arguments" do
       result =
-        GraphQLDocument.operation(
+        GraphQLDocument.query(
           users: {
             [ids: [1, 2, 3], filters: [status: "active"]],
             [:name]
@@ -213,7 +194,7 @@ defmodule GraphQLDocumentTest do
 
     test "field aliases" do
       result =
-        GraphQLDocument.operation(
+        GraphQLDocument.query(
           me:
             field(
               :user,
@@ -244,8 +225,7 @@ defmodule GraphQLDocumentTest do
 
     test "variables" do
       result =
-        GraphQLDocument.operation(
-          :query,
+        GraphQLDocument.query(
           [
             me:
               field(
@@ -283,8 +263,7 @@ defmodule GraphQLDocumentTest do
 
     test "directives" do
       result =
-        GraphQLDocument.operation(
-          :query,
+        GraphQLDocument.query(
           [
             experimentalField:
               field(
@@ -308,8 +287,7 @@ defmodule GraphQLDocumentTest do
 
     test "fragments" do
       result =
-        GraphQLDocument.operation(
-          :query,
+        GraphQLDocument.query(
           [
             user:
               {[id: 4],
@@ -324,7 +302,7 @@ defmodule GraphQLDocumentTest do
                ]}
           ],
           fragments: [
-            friendFields: {:User, [:id, :name, profilePic: {[size: 50], []}]}
+            friendFields: {on(User), [:id, :name, profilePic: {[size: 50], []}]}
           ]
         )
 

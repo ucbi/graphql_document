@@ -1,21 +1,86 @@
 defmodule GraphQLDocument do
   @moduledoc """
-  A utility for building GraphQL documents. (Strings that contain a GraphQL query/mutation.)
+  Builds [GraphQL](https://graphql.org/)
+  [Documents](http://spec.graphql.org/October2021/#sec-Document) from Elixir
+  primitives.
 
-  ## Syntax
-
-  The functions in this library take **nested [keyword] lists** in the same
-  structure as GraphQL, and return that GraphQL document as a `String`.
-
-  These functions are available:
+  These functions take Elixir data in the same structure as GraphQL and return the analogous GraphQL Document as a `String`.
 
     - `GraphQLDocument.query/2`
     - `GraphQLDocument.mutation/2`
     - `GraphQLDocument.subscription/2`
 
-  Let's take a look at some examples.
+  ## Getting Started
 
-  ### Object Fields
+  See `GraphQLDocument.query/2` for details about Elixir structures and how
+  they map to GraphQL syntax.
+
+  ## Not-yet-supported features
+
+  `GraphQLDocument` does not currently have the ability to generate Type System
+  definitions, although they technically belong in a Document.
+
+  """
+
+  alias GraphQLDocument.{Name, Operation, Fragment}
+
+  @doc """
+  If you want to express a field with directives or an alias, you must use this
+  function.
+
+  See `field/2` if you want to specify an alias.
+
+  ### Examples
+
+      iex> field(args: [id: 2], directives: [:debug], select: [:name])
+      {:__field__, [args: [id: 2], directives: [:debug], select: [:name]]}
+
+  """
+  def field(config), do: {:__field__, config}
+
+  @doc """
+  If you want to express a field with an alias, you must use this function.
+
+  See `field/1` if you want to specify directives without an alias.
+
+  ### Examples
+
+      iex> field(:user, args: [id: 2], directives: [:debug], select: [:name])
+      {:__field__, :user, [args: [id: 2], directives: [:debug], select: [:name]]}
+
+  """
+  def field(name, config), do: {:__field__, name, config}
+
+  @doc """
+  Wraps a variable name in a `GraphQLDocument`-friendly tuple.
+
+  ### Example
+
+      iex> var(:foo)
+      {:var, :foo}
+
+  """
+  def var(name) when is_binary(name) or is_atom(name), do: {:var, name}
+
+  @doc """
+  Creates a [TypeCondition](http://spec.graphql.org/October2021/#TypeCondition)
+  for a [Fragment](http://spec.graphql.org/October2021/#sec-Language.Fragments).
+
+  ### Example
+
+      iex> on(User)
+      {:on, User}
+
+  """
+  @spec on(Name.t()) :: Fragment.type_condition()
+  def on(name) when is_binary(name) or is_atom(name), do: {:on, name}
+
+  @doc """
+  Generate a GraphQL query document.
+
+  # Syntax
+
+  ## Object Fields
 
   To request a list of fields in an object, include them in a list.
 
@@ -37,7 +102,7 @@ defmodule GraphQLDocument do
   }
   ```
 
-  ### Arguments
+  ## Arguments
 
   When a field includes arguments, wrap the arguments and child fields in a
   tuple, like this.
@@ -65,16 +130,15 @@ defmodule GraphQLDocument do
   }
   ```
 
-  #### Argument types and Enums
+  ### Argument types and Enums
 
   Provide Elixir primitives (numbers, strings, lists, booleans, etc.) as
   arguments, and they'll be translated into the analogous GraphQL primitive.
 
-  GraphQL enums can be expressed using `GraphQLDocument.var/1` or in a tuple
-  syntax, like this.
+  GraphQL enums can be expressed using atoms:
 
   ```
-  {:enum, "FOOT"}
+  FOOT
   ```
 
   For example, this Elixir structure becomes the following GraphQL document.
@@ -104,7 +168,7 @@ defmodule GraphQLDocument do
   >
   > Alternatively, use the `GraphQLDocument.field/1` helper.
 
-  ### Nesting Fields
+  ## Nesting Fields
 
   Since GraphQL supports a theoretically infinite amount of nesting, you can also
   nest as much as needed in the Elixir structure.
@@ -147,7 +211,7 @@ defmodule GraphQLDocument do
   }
   ```
 
-  ### Aliases
+  ## Aliases
 
   In order to name a field with an alias, follow the syntax below using
   `GraphQLDocument.field/1`, where `me` is the alias and `user` is the field:
@@ -170,72 +234,29 @@ defmodule GraphQLDocument do
     }
   }
   ```
-  """
-
-  alias GraphQLDocument.{Name, Operation, Fragment}
-
-  def field(config), do: {:__field__, config}
-
-  def field(name, config), do: {:__field__, name, config}
-
-  @doc """
-  Wraps an enum string value (such as user input from a form) in a
-  `GraphQLDocument`-friendly tuple.
-
-  ### Example
-
-      iex> enum("soundex")
-      {:enum, "soundex"}
 
   """
-  def enum(str) when is_binary(str), do: {:enum, str}
-
-  @doc """
-  Wraps a variable name in a `GraphQLDocument`-friendly tuple.
-
-  ### Example
-
-      iex> var(:foo)
-      {:var, :foo}
-
-  """
-  def var(name) when is_binary(name) or is_atom(name), do: {:var, name}
-
-  @doc """
-  Creates a [TypeCondition](http://spec.graphql.org/October2021/#TypeCondition)
-  for a [Fragment](http://spec.graphql.org/October2021/#sec-Language.Fragments).
-
-  ### Example
-
-      iex> on(User)
-      {:on, User}
-
-  """
-  @spec on(Name.t()) :: Fragment.type_condition()
-  def on(name) when is_binary(name) or is_atom(name), do: {:on, name}
-
-  @doc """
-  Generate a GraphQL query document.
-  """
-  def query(selection, opts \\ []) do
-    operation(:query, selection, opts)
+  def query(selections, opts \\ []) do
+    Operation.render(:query, selections, opts)
   end
 
   @doc """
   Generate a GraphQL mutation document.
+
+  See `GraphQLDocument.query/2` for more details, as `subscription/2` is called
+  in the same way.
   """
-  def mutation(selection, opts \\ []) do
-    operation(:mutation, selection, opts)
+  def mutation(selections, opts \\ []) do
+    Operation.render(:mutation, selections, opts)
   end
 
   @doc """
   Generate a GraphQL subscription document.
-  """
-  def subscription(selection, opts \\ []) do
-    operation(:subscription, selection, opts)
-  end
 
-  defdelegate operation(operation_type, selection, opts), to: Operation, as: :render
-  defdelegate operation(operation_type, selection), to: Operation, as: :render
-  defdelegate operation(selection), to: Operation, as: :render
+  See `GraphQLDocument.query/2` for more details, as `subscription/2` is called
+  in the same way.
+  """
+  def subscription(selections, opts \\ []) do
+    Operation.render(:subscription, selections, opts)
+  end
 end
