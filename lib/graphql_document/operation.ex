@@ -6,7 +6,7 @@ defmodule GraphQLDocument.Operation do
 
   @typedoc "Options that can be passed along with the operation."
   @type operation_option ::
-          {:variables, [Variable.t]}
+          {:variables, [Variable.t()]}
           | {:directives, [Directive.t()]}
           | {:fragments, [Fragment.definition()]}
 
@@ -32,7 +32,7 @@ defmodule GraphQLDocument.Operation do
 
   """
   @spec render(operation_type, SelectionSet.t(), [operation_option]) :: String.t()
-  def render(operation_type, selection, opts)
+  def render(operation_type \\ :query, selection, opts \\ [])
       when is_atom(operation_type) and is_list(selection) and is_list(opts) do
     if operation_type not in [:query, :mutation, :subscription] do
       raise ArgumentError,

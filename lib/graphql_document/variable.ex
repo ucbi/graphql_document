@@ -23,7 +23,7 @@ defmodule GraphQLDocument.Variable do
   @typedoc """
   Options that can be passed when defining a variable.
 
-    - `default` sets the default value. (Pass any `t:GraphQLDocument.value/0`)
+    - `default` sets the default value. (Pass any `t:GraphQLDocument.Value.t/0`)
     - `null: false` makes it a non-nullable (required) variable.
 
   """
