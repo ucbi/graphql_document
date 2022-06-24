@@ -314,9 +314,13 @@ defmodule GraphQLDocumentTest do
             user:
               {[id: 4],
                [
-                 inline_fragment({User, [skip: [if: true]], [:password, :passwordHash]}),
-                 friends: {[first: 10], [fragment(:friendFields)]},
-                 mutualFriends: {[first: 10], [fragment(:friendFields)]}
+                 ...: {
+                   on(User),
+                   [skip: [if: true]],
+                   [:password, :passwordHash]
+                 },
+                 friends: {[first: 10], [...: :friendFields]},
+                 mutualFriends: {[first: 10], [...: :friendFields]}
                ]}
           ],
           fragments: [

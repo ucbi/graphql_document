@@ -172,7 +172,7 @@ defmodule GraphQLDocument do
   ```
   """
 
-  alias GraphQLDocument.Operation
+  alias GraphQLDocument.{Name, Operation, Fragment}
 
   def field(config), do: {:__field__, config}
 
@@ -202,30 +202,17 @@ defmodule GraphQLDocument do
   def var(name) when is_binary(name) or is_atom(name), do: {:var, name}
 
   @doc """
-  Wraps a fragment spread in `GraphQLDocument`-friendly tuple.
-
-  TODO: Document usage with directives.
-
-  ### Example
-
-      iex> fragment(:foo)
-      {:__fragment__, :foo}
-
-  """
-  def fragment(name) when is_binary(name) or is_atom(name), do: {:__fragment__, name}
-
-  @doc """
-  Wraps an inline fragment in `GraphQLDocument`-friendly tuple.
-
-  TODO: Document usage with directives.
+  Creates a [TypeCondition](http://spec.graphql.org/October2021/#TypeCondition)
+  for a [Fragment](http://spec.graphql.org/October2021/#sec-Language.Fragments).
 
   ### Example
 
-      iex> inline_fragment({User, [:name, :email]})
-      {:__inline_fragment__, {User, [:name, :email]}}
+      iex> on(User)
+      {:on, User}
 
   """
-  def inline_fragment(inline), do: {:__inline_fragment__, inline}
+  @spec on(Name.t()) :: Fragment.type_condition()
+  def on(name) when is_binary(name) or is_atom(name), do: {:on, name}
 
   @doc """
   Generate a GraphQL query document.

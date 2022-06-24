@@ -1,44 +1,166 @@
 defmodule GraphQLDocument.Fragment do
   alias GraphQLDocument.{Directive, Name, SelectionSet}
 
+  @type t :: {:..., spread | inline}
+
+  @typedoc "A definition of a fragment"
+  @type definition ::
+          {name,
+           {type_condition, SelectionSet.t()}
+           | {type_condition, [Directive.t()], SelectionSet.t()}}
+
   @typedoc "The name of a fragment"
   @type name :: Name.t()
 
   @typedoc "The type to which the fragment applies"
-  @type on :: Name.t()
-
-  @typedoc "A definition of a fragment"
-  @type definition :: {name, {on, SelectionSet.t()} | {on, [Directive.t()], SelectionSet.t()}}
+  @type type_condition :: {:on, Name.t()}
 
   @typedoc """
   A fragment spread is injecting `...fragmentName` into a request to instruct
   the server to return the fields in the fragment.
   """
-  @type spread :: {:__fragment__, name} | {:__fragment__, {name, [Directive.t()]}}
+  @type spread :: {:..., name} | {:..., {name, [Directive.t()]}}
 
   @typedoc """
-  An inline fragment is a fragment that doesn't have a definition;
-  the definition appears right in the middle of a selection set
-  in the query/mutation/subscription.
+  An [inline fragment](http://spec.graphql.org/October2021/#sec-Inline-Fragments)
+  is a fragment that doesn't have a definition; the definition appears right in
+  the middle of a selection set in the query/mutation/subscription.
 
-  It exists to support requesting certain fields only if the
-  object is a certain type (for objects of a union type),
-  or to apply directives to only a subset of fields.
+  It exists to support requesting certain fields only if the object is a
+  certain type (for objects of a union type), or to apply directives to only a
+  subset of fields.
   """
   @type inline ::
-          {:__inline_fragment__, SelectionSet.t()}
-          | {:__inline_fragment__, {on, SelectionSet.t()}}
-          | {:__inline_fragment__, {on | nil, [Directive.t()], SelectionSet.t()}}
+          SelectionSet.t()
+          | {[Directive.t()], SelectionSet.t()}
+          | {type_condition, SelectionSet.t()}
+          | {type_condition, [Directive.t()], SelectionSet.t()}
 
-  @doc """
+  @typedoc "The 'envelope' that fragments are wrapped in: a 2-tuple where the first element is `:...`"
+  @type envelope(t) :: {:..., t}
+
+  @doc ~S'''
+  Returns the fragment as an iolist ready to be rendered in a GraphQL document.
+
+  ### Examples
+
+      iex> render(:friendFields, 1)
+      ...> |> IO.iodata_to_binary()
+      "...friendFields"
+
+      iex> render({:friendFields, [skip: [if: {:var, :antisocial}]]}, 1)
+      ...> |> IO.iodata_to_binary()
+      "...friendFields @skip(if: $antisocial)"
+
+      iex> render(
+      ...>   {
+      ...>     :friendFields,
+      ...>     [include: [if: {:var, :expanded}]]
+      ...>   },
+      ...>   1
+      ...> )
+      ...> |> IO.iodata_to_binary()
+      "...friendFields @include(if: $expanded)"
+
+      iex> render([:foo, :bar], 1)
+      ...> |> IO.iodata_to_binary()
+      """
+      ... {
+        foo
+        bar
+      }\
+      """
+
+      iex> render({[log: [level: "warn"]], [:foo, :bar]}, 1)
+      ...> |> IO.iodata_to_binary()
+      """
+      ... @log(level: "warn") {
+        foo
+        bar
+      }\
+      """
+
+      iex> render(
+      ...>   {
+      ...>     {:on, Person},
+      ...>     [:name, friends: [:name, :city]]
+      ...>   },
+      ...>   1
+      ...> )
+      ...> |> IO.iodata_to_binary()
+      """
+      ... on Person {
+        name
+        friends {
+          name
+          city
+        }
+      }\
+      """
+
+      iex> render(
+      ...>   {
+      ...>     {:on, Person},
+      ...>     [:log],
+      ...>     [:name, friends: [:name, :city]]
+      ...>   },
+      ...>   1
+      ...> )
+      ...> |> IO.iodata_to_binary()
+      """
+      ... on Person @log {
+        name
+        friends {
+          name
+          city
+        }
+      }\
+      """
+
+  '''
+  @spec render(t, non_neg_integer) :: iolist
+  def render(fragment, indent_level) do
+    case fragment do
+      name when is_binary(name) or is_atom(name) ->
+        render_spread(name)
+
+      {name, directives} when (is_binary(name) or is_atom(name)) and is_list(directives) ->
+        render_spread(name, directives)
+
+      selection when is_list(selection) ->
+        render_inline(nil, [], selection, indent_level)
+
+      {directives, selection} when is_list(directives) and is_list(selection) ->
+        render_inline(nil, directives, selection, indent_level)
+
+      {{:on, on}, selection} when (is_atom(on) or is_atom(on)) and is_list(selection) ->
+        render_inline(on, [], selection, indent_level)
+
+      {{:on, on}, directives, selection}
+      when (is_atom(on) or is_atom(on)) and is_list(directives) and is_list(selection) ->
+        render_inline(on, directives, selection, indent_level)
+    end
+  end
+
+  @doc ~S'''
   Returns the given fragment definitions as iodata to be rendered in a GraphQL document.
 
   ### Examples
 
-      iex> render_definitions([friendFields: {User, [:id, :name, profilePic: {[size: 50], []}]}]) |> IO.iodata_to_binary()
-      "\\n\\nfragment friendFields on User {\\n  id\\n  name\\n  profilePic(size: 50)\\n}"
+      iex> render_definitions(friendFields: {
+      ...>   User,
+      ...>   [:id, :name, profilePic: {[size: 50], []}]
+      ...> })
+      ...> |> IO.iodata_to_binary()
+      """
+      \n\nfragment friendFields on User {
+        id
+        name
+        profilePic(size: 50)
+      }\
+      """
 
-  """
+  '''
   @spec render_definitions([definition]) :: iolist
   def render_definitions(fragments) do
     unless is_map(fragments) or is_list(fragments) do
@@ -63,17 +185,8 @@ defmodule GraphQLDocument.Fragment do
     end
   end
 
-  @doc """
-  Returns a fragment spread as iodata to be rendered in a GraphQL document.
-
-  ### Examples
-
-      iex> render_spread(:friendFields, [include: [if: {:var, :expanded}]]) |> IO.iodata_to_binary()
-      "...friendFields @include(if: $expanded)"
-
-  """
   @spec render_spread(Name.t(), [Directive.t()]) :: iolist
-  def render_spread(name, directives \\ []) do
+  defp render_spread(name, directives \\ []) do
     [
       "...",
       Name.valid_name!(name),
@@ -81,17 +194,8 @@ defmodule GraphQLDocument.Fragment do
     ]
   end
 
-  @doc """
-  Returns an inline fragment as iodata to be rendered in a GraphQL document.
-
-  ### Examples
-
-      iex> render_inline(Person, [:log], [:name, friends: [:name, :city]], 1) |> IO.iodata_to_binary()
-      "... on Person @log {\\n  name\\n  friends {\\n    name\\n    city\\n  }\\n}"
-
-  """
-  @spec render_inline(Name.t(), [Directive.t()], SelectionSet.t(), integer) :: iolist
-  def render_inline(on, directives, selection, indent_level) when indent_level > 0 do
+  @spec render_inline(Name.t() | nil, [Directive.t()], SelectionSet.t(), integer) :: iolist
+  defp render_inline(on, directives, selection, indent_level) when indent_level > 0 do
     [
       "...",
       if on do
