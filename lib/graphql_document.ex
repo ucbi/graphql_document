@@ -1,19 +1,16 @@
 defmodule GraphQLDocument do
   @moduledoc """
-  A utility for building GraphQL documents. (Strings that contain a GraphQL query/mutation.)
+  Builds [GraphQL](https://graphql.org/)
+  [Documents](http://spec.graphql.org/October2021/#sec-Document) from Elixir
+  primitives.
 
-  ## Syntax
-
-  The functions in this library take **nested [keyword] lists** in the same
-  structure as GraphQL, and return that GraphQL document as a `String`.
-
-  These functions are available:
+  These functions take Elixir data in the same structure as GraphQL and return the analogous GraphQL Document as a `String`.
 
     - `GraphQLDocument.query/2`
     - `GraphQLDocument.mutation/2`
     - `GraphQLDocument.subscription/2`
 
-  Let's take a look at some examples.
+  ## Syntax
 
   ### Object Fields
 
@@ -70,11 +67,10 @@ defmodule GraphQLDocument do
   Provide Elixir primitives (numbers, strings, lists, booleans, etc.) as
   arguments, and they'll be translated into the analogous GraphQL primitive.
 
-  GraphQL enums can be expressed using `GraphQLDocument.var/1` or in a tuple
-  syntax, like this.
+  GraphQL enums can be expressed using atoms:
 
   ```
-  {:enum, "FOOT"}
+  FOOT
   ```
 
   For example, this Elixir structure becomes the following GraphQL document.
@@ -170,6 +166,12 @@ defmodule GraphQLDocument do
     }
   }
   ```
+
+  ## Not-yet-supported features
+
+  `GraphQLDocument` does not currently have the ability to generate Type System
+  definitions, although they technically go in a Document.
+
   """
 
   alias GraphQLDocument.{Name, Operation, Fragment}
@@ -177,18 +179,6 @@ defmodule GraphQLDocument do
   def field(config), do: {:__field__, config}
 
   def field(name, config), do: {:__field__, name, config}
-
-  @doc """
-  Wraps an enum string value (such as user input from a form) in a
-  `GraphQLDocument`-friendly tuple.
-
-  ### Example
-
-      iex> enum("soundex")
-      {:enum, "soundex"}
-
-  """
-  def enum(str) when is_binary(str), do: {:enum, str}
 
   @doc """
   Wraps a variable name in a `GraphQLDocument`-friendly tuple.

@@ -144,11 +144,11 @@ defmodule GraphQLDocumentTest do
       assert result == expected
     end
 
-    test "pass enum argument as an {:enum, string} tuple" do
+    test "pass enum argument as an atom" do
       result =
         GraphQLDocument.operation(
           get_rockets: {
-            [rocket_type: {:enum, "MASSIVE"}],
+            [rocket_type: MASSIVE],
             [:status]
           }
         )
@@ -171,21 +171,9 @@ defmodule GraphQLDocumentTest do
           createPost: {
             [
               title: "Test",
-              category: {:enum, "MUSIC) {\n    id\n  } \n  launchRockets(when: NOW"}
+              category: :"MUSIC) {\n    id\n  } \n  launchRockets(when: NOW"
             ],
             [:id]
-          }
-        )
-      end
-    end
-
-    test "cannot pass atoms as arguments" do
-      assert_raise ArgumentError, fn ->
-        GraphQLDocument.operation(
-          :query,
-          posts: {
-            [category: MUSIC],
-            [:id, :title]
           }
         )
       end

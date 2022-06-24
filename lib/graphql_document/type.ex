@@ -1,15 +1,26 @@
 defmodule GraphQLDocument.Type do
+  @moduledoc """
+  A [Type](http://spec.graphql.org/October2021/#sec-Type-References) references
+  a [TypeDefinition](http://spec.graphql.org/October2021/#sec-Types)
+  defined by a GraphQL service.
+
+  These are used in `GraphQLDocument` when defining Variables. (See `GraphQLDocument.Variable`)
+  """
+
   alias GraphQLDocument.Name
 
   @typedoc """
-  A GraphQL Type.
+  A named type or a list type.
 
-  See: http://spec.graphql.org/October2021/#Type
+  Can be wrapped in a tuple to provide options, which are used to specify if it
+  can be null.
+
+  See `render/1` for examples.
   """
   @type t :: Name.t() | [t] | {Name.t() | [t], [option]}
 
   @typedoc """
-  Options to be passed along with a type.
+  Options to be passed along with a Type.
 
     - `null` - Whether it can be null
 
@@ -17,20 +28,28 @@ defmodule GraphQLDocument.Type do
   @type option :: {:null, boolean}
 
   @doc ~S'''
-  Returns a type as an iolist ready to be rendered in a GraphQL document.
+  Returns a Type as an iolist to be inserted into a Document.
 
   ### Examples
 
-      iex> render(Int) |> IO.iodata_to_binary()
+      iex> render(Int)
+      ...> |> IO.iodata_to_binary()
       "Int"
 
-      iex> render(Boolean) |> IO.iodata_to_binary()
+      iex> render(Boolean)
+      ...> |> IO.iodata_to_binary()
       "Boolean"
 
-      iex> render({Boolean, null: false}) |> IO.iodata_to_binary()
+      iex> render([String])
+      ...> |> IO.iodata_to_binary()
+      "[String]"
+
+      iex> render({Boolean, null: false})
+      ...> |> IO.iodata_to_binary()
       "Boolean!"
 
-      iex> render({[{Boolean, null: false}], null: false}) |> IO.iodata_to_binary()
+      iex> render({[{Boolean, null: false}], null: false})
+      ...> |> IO.iodata_to_binary()
       "[Boolean!]!"
 
   '''
@@ -58,7 +77,7 @@ defmodule GraphQLDocument.Type do
       if is_list do
         render(type)
       else
-        Name.valid_name!(type)
+        Name.render!(type)
       end,
       if is_list do
         ?]

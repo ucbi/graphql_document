@@ -19,20 +19,20 @@ defmodule GraphQLDocument.Field do
 
   def new(name) when is_binary(name) or is_atom(name) do
     struct!(Field, %{
-      name: Name.valid_name!(name)
+      name: Name.render!(name)
     })
   end
 
   def new({name, selections}) when is_list(selections) do
     struct!(Field, %{
-      name: Name.valid_name!(name),
+      name: Name.render!(name),
       select: selections
     })
   end
 
   def new({name, {args, selections}}) when is_list(args) and is_list(selections) do
     struct!(Field, %{
-      name: Name.valid_name!(name),
+      name: Name.render!(name),
       args: args,
       select: selections
     })
@@ -64,14 +64,14 @@ defmodule GraphQLDocument.Field do
     [
       if field_alias = field.as do
         [
-          Name.valid_name!(field_alias),
+          Name.render!(field_alias),
           ?:,
           ?\s
         ]
       else
         []
       end,
-      Name.valid_name!(field.name),
+      Name.render!(field.name),
       Argument.render(field.args),
       Directive.render(field.directives),
       Selection.render(field.select, indent_level)

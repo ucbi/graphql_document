@@ -1,25 +1,43 @@
 defmodule GraphQLDocument.Argument do
+  @moduledoc """
+  [Arguments](http://spec.graphql.org/October2021/#sec-Language.Arguments)
+  are specified in a keyword list.
+
+      [width: 100, height: 50]
+
+  """
+
   alias GraphQLDocument.{Name, Value}
 
-  @typedoc """
-  A GraphQL argument.
-
-  See: http://spec.graphql.org/October2021/#Argument
-  """
+  @typedoc "A GraphQL argument."
   @type t :: {Name.t(), Value.t()}
 
-  @doc """
-  Returns a list of arguments as iodata to be inserted into a GraphQL document.
+  @doc ~S'''
+  Returns a list of Arguments as iodata to be inserted into a Document.
+
+  Any valid GraphQL Value can be sent as the value of an Argument.
+  (See `t:GraphQLDocument.Value.t/0`.)
 
   ### Examples
 
-      iex> render(foo: "bar") |> IO.iodata_to_binary()
-      "(foo: \\"bar\\")"
+      iex> render(height: 100, width: 50)
+      ...> |> IO.iodata_to_binary()
+      "(height: 100, width: 50)"
 
-      iex> render(%{person: [coordinates: [lat: 123.45, lng: 678.90]]}) |> IO.iodata_to_binary()
+      iex> render(name: "Joshua", city: "Montreal", friendsOfFriends: true)
+      ...> |> IO.iodata_to_binary()
+      "(name: \"Joshua\", city: \"Montreal\", friendsOfFriends: true)"
+
+      iex> render(%{person: [
+      ...>   coordinates: [
+      ...>     lat: 123.45,
+      ...>     lng: 678.90
+      ...>   ]
+      ...> ]})
+      ...> |> IO.iodata_to_binary()
       "(person: {coordinates: {lat: 123.45, lng: 678.9}})"
 
-  """
+  '''
   @spec render([t]) :: iolist
   def render(args) do
     unless is_map(args) or is_list(args) do
@@ -32,7 +50,7 @@ defmodule GraphQLDocument.Argument do
         args
         |> Enum.map(fn {key, value} ->
           [
-            Name.valid_name!(key),
+            Name.render!(key),
             ?:,
             ?\s,
             Value.render(value)

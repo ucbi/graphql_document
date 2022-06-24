@@ -14,8 +14,8 @@ defmodule GraphQLDocument.Selection do
   @type field :: Name.t() | {Name.t(), [field]} | {Name.t(), {[Argument.t()], t}}
 
   @doc ~S'''
-  Return a [SelectionSet](http://spec.graphql.org/October2021/#SelectionSet) as
-  iodata to be rendered in a GraphQL document.
+  Returns a [SelectionSet](http://spec.graphql.org/October2021/#SelectionSet) as
+  iodata to be inserted into a Document.
 
   ### Examples
 

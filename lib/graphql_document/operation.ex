@@ -5,10 +5,10 @@ defmodule GraphQLDocument.Operation do
   @type operation_type :: :query | :mutation | :subscription
 
   @typedoc "Options that can be passed along with the operation."
-  @type operation_option ::
-          {:variables, [Variable.t()]}
-          | {:directives, [Directive.t()]}
+  @type option ::
+          {:variables, [Variable.definition()]}
           | {:fragments, [Fragment.definition()]}
+          | {:directives, [Directive.t()]}
 
   @doc """
   Generates GraphQL syntax from a nested Elixir keyword list.
@@ -31,7 +31,7 @@ defmodule GraphQLDocument.Operation do
       \"\"\"
 
   """
-  @spec render(operation_type, [Selection.t()], [operation_option]) :: String.t()
+  @spec render(operation_type, [Selection.t()], [option]) :: String.t()
   def render(operation_type \\ :query, selections, opts \\ [])
       when is_atom(operation_type) and is_list(selections) and is_list(opts) do
     if operation_type not in [:query, :mutation, :subscription] do
@@ -50,13 +50,13 @@ defmodule GraphQLDocument.Operation do
         """
     end
 
-    variables = Keyword.get(opts, :variables, [])
+    variable_definitions = Keyword.get(opts, :variables, [])
     directives = Keyword.get(opts, :directives, [])
     fragments = Keyword.get(opts, :fragments, [])
 
     IO.iodata_to_binary([
       to_string(operation_type),
-      Variable.render(variables),
+      Variable.render_definitions(variable_definitions),
       Directive.render(directives),
       Selection.render(selections, 1),
       Fragment.render_definitions(fragments)

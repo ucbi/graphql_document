@@ -36,11 +36,8 @@ defmodule GraphQLDocument.Fragment do
           | {type_condition, [Selection.t()]}
           | {type_condition, [Directive.t()], [Selection.t()]}
 
-  @typedoc "The 'envelope' that fragments are wrapped in: a 2-tuple where the first element is `:...`"
-  @type envelope(t) :: {:..., t}
-
   @doc ~S'''
-  Returns the fragment as an iolist ready to be rendered in a GraphQL document.
+  Returns a Fragment as an iolist to be inserted in a Document.
 
   ### Examples
 
@@ -176,9 +173,9 @@ defmodule GraphQLDocument.Fragment do
 
       [
         "\n\nfragment ",
-        Name.valid_name!(name),
+        Name.render!(name),
         " on ",
-        Name.valid_name!(on),
+        Name.render!(on),
         Directive.render(directives),
         Selection.render(selection, 1)
       ]
@@ -189,7 +186,7 @@ defmodule GraphQLDocument.Fragment do
   defp render_spread(name, directives \\ []) do
     [
       "...",
-      Name.valid_name!(name),
+      Name.render!(name),
       Directive.render(directives)
     ]
   end
@@ -199,7 +196,7 @@ defmodule GraphQLDocument.Fragment do
     [
       "...",
       if on do
-        [" on ", Name.valid_name!(on)]
+        [" on ", Name.render!(on)]
       else
         []
       end,

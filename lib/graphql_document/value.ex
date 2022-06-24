@@ -1,28 +1,36 @@
 defmodule GraphQLDocument.Value do
-  alias GraphQLDocument.Name
+  @moduledoc """
+  A [Value](http://spec.graphql.org/October2021/#Value) can be any of the
+  following Elixir types:
 
-  @typedoc """
-  A value in GraphQL can be a number, string, boolean, null, an Enum, or a List or Object.
+    - number
+    - boolean
+    - `nil`
+    - `String`
+    - `List`
+    - `Map`
+    - `Atom` (an [Enum](http://spec.graphql.org/October2021/#sec-Enum-Value); see `GraphQLDocument.Enum`)
+    - `{:var, var}` (to represent a [Variable](http://spec.graphql.org/October2021/#sec-Language.Variables); see `GraphQLDocument.Variable`)
 
-  See: http://spec.graphql.org/October2021/#Value
+  Values are sent inside Arguments (see `GraphQLDocument.Argument`) or as
+  default values in Variable Definitions (see `t:GraphQLDocument.Variable.definition/0`).
   """
+
+  alias GraphQLDocument.{Name, Variable}
+
   @type t ::
           integer
           | float
           | String.t()
           | boolean
           | nil
-          | {:enum, String.t()}
+          | atom
           | [t]
           | %{optional(atom) => t}
-          | variable
-
-  @typedoc "A usage of a defined variable as a value"
-  @type variable :: {:var, Name.t()}
+          | Variable.t()
 
   @doc """
-  Given a single value of a variety of types, (see `t:t/0`) returns it as as iodata to be
-  inserted into a GraphQL document.
+  Returns a Value as iodata to be inserted into a Document.
 
   Returns native Elixir date and datetime structures as strings in ISO8601 format.
 
@@ -37,7 +45,7 @@ defmodule GraphQLDocument.Value do
       iex> render(DateTime.from_naive!(~N[2019-11-12T10:30:25], "Etc/UTC"))
       "\\"2019-11-12T10:30:25Z\\""
 
-      iex> render({:enum, Jedi})
+      iex> render(Jedi)
       "Jedi"
 
       iex> render({:var, :allegiance})
@@ -74,14 +82,10 @@ defmodule GraphQLDocument.Value do
     def render(%Decimal{} = decimal), do: Decimal.to_string(decimal)
   end
 
-  def render({:enum, enum}) do
-    Name.valid_name!(enum)
-  end
-
   def render({:var, var}) do
     [
       ?$,
-      Name.valid_name!(var)
+      Name.render!(var)
     ]
   end
 
@@ -94,7 +98,7 @@ defmodule GraphQLDocument.Value do
         enum
         |> Enum.map(fn {key, value} ->
           [
-            Name.valid_name!(key),
+            Name.render!(key),
             ?:,
             ?\s,
             render(value)
@@ -127,7 +131,6 @@ defmodule GraphQLDocument.Value do
   end
 
   def render(value) when is_atom(value) do
-    raise ArgumentError,
-      message: "[GraphQLDocument] Cannot pass an atom as a value; received `#{value}`"
+    GraphQLDocument.Enum.render(value)
   end
 end
