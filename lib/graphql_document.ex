@@ -253,4 +253,6 @@ defmodule GraphQLDocument do
   end
 
   defdelegate operation(operation_type, selection, opts), to: Operation, as: :render
+  defdelegate operation(operation_type, selection), to: Operation, as: :render
+  defdelegate operation(selection), to: Operation, as: :render
 end
