@@ -12,8 +12,247 @@ defmodule GraphQLDocument do
 
   ## Getting Started
 
-  See `GraphQLDocument.query/2` for details about Elixir structures and how
-  they map to GraphQL syntax.
+  > #### Code Snippets {: .info}
+  >
+  > Each Elixir code snippet is immediately followed by the snippet of
+  > GraphQL that it will produce.
+
+  All functions called in the code snippets below are in `GraphQLDocument`.
+  (`import GraphQLDocument` to directly use them.)
+
+  ### Object Fields
+
+  To request a list of fields in an object, include them in a list.
+
+  ```
+  query([
+    human: [:name, :height]
+  ])
+  ```
+
+  ```gql
+  query {
+    human {
+      name
+      height
+    }
+  }
+  ```
+
+  ### Arguments
+
+  Wrap arguments along with child fields in a tuple.
+
+  ```
+  {args, fields}
+  ```
+
+  ```
+  query(human: {
+    [id: "1000"],
+    [:name, :height]
+  })
+  ```
+
+  ```gql
+  query {
+    human(id: "1000") {
+      name
+      height
+    }
+  }
+  ```
+
+  #### Argument types and Enums
+
+  Elixir primitives (numbers, strings, lists, booleans, etc.) are translated
+  into the analogous GraphQL primitive.
+
+  Enums are expressed with atoms, like `MY_ENUM`, `:MY_ENUM`, or `:"MY_ENUM"`
+
+  ```
+  [human: {
+    [id: "1000"],
+    [:name, height: {[unit: FOOT], []}]
+  }]
+  ```
+
+  ```gql
+  query {
+    human(id: "1000") {
+      name
+      height(unit: FOOT)
+    }
+  }
+  ```
+
+  > #### Expressing Arguments Without Sub-fields {: .tip}
+  >
+  > Notice the slightly complicated syntax above: `height: {[unit: FOOT], []}`
+  >
+  > Since `args` can be expressed in `{args, fields}` tuple, we put `[]` where
+  > the sub-fields go because there are no sub-fields.
+  >
+  > This can also be expressed as `height: field(args: [unit: FOOT])`. See `field/1`.
+
+  ### Mixing Lists and Keyword Lists
+
+  Since GraphQL supports a theoretically infinite amount of nesting, you can also
+  nest as much as needed in the Elixir structure.
+
+  Furthermore, we can take advantage of Elixir's syntax feature that allows a
+  regular list to be "mixed" with a keyword list. (The keyword pairs must be at
+  the end.)
+
+  ```
+  # Elixir allows lists with a Keyword List as the final members
+  [:name, :height, friends: [:name, :age]]
+  ```
+
+  Using this syntax, we can build a nested structure where we select primitive
+  fields (like `:name` below) alongside object fields (like `:friends`).
+
+  ```
+  query(
+    human: {[id: "1000"], [
+      :name,
+      :height,
+      friends: {[olderThan: 30], [
+        :name,
+        :height
+      ]}
+    ]}
+  )
+  ```
+
+  ```gql
+  query {
+    human(id: "1000") {
+      name
+      height
+      friends(olderThan: 30) {
+        name
+        height
+      }
+    }
+  }
+  ```
+
+  ### Fragments
+
+  To express a fragment, use the `:...` atom as the field name, similar to how
+  you would in GraphQL.
+
+  The fragment definition is passed as an option to `query/2`, `mutation/2`, or
+  `subscription/2`.
+
+  Inline fragments and fragment definitions use the `on/1` function to specify
+  the type condition.
+
+  ```
+  query(
+    [
+      self: [
+       ...: {
+         on(User),
+         [skip: [if: true]],
+         [:password, :passwordHash]
+       },
+       friends: [
+         ...: :friendFields
+       ]
+     ]
+    ],
+    fragments: [
+      friendFields: {on(User), [
+        :id,
+        :name,
+        profilePic: field(args: [size: 50])
+      ]}
+    ]
+  )
+  ```
+
+  ```gql
+  query {
+    self {
+      ... on User @skip(if: true) {
+        password
+        passwordHash
+      }
+      friends(first: 10) {
+        ...friendFields
+      }
+    }
+  }
+
+  fragment friendFields on User {
+    id
+    name
+    profilePic(size: 50)
+  }
+  ```
+
+  ## Features That Require `field/1`
+
+  The `field/1` and `field/2` functions are required in order to express [Aliases](#module-aliases)
+  and [Directives](#module-directives).
+
+  ### Aliases
+
+  Express an alias by putting the alias in place of the field name, and pass
+  the field name as the first argument to `field/2`.
+
+  In the example below, `me` is the alias and `user` is the field.
+
+  > #### Spot the Keyword List {: .info}
+  >
+  > `args:` and `select:` below are members of an "invisible" keyword list
+  > using Elixir's [call syntax](https://hexdocs.pm/elixir/Keyword.html#module-call-syntax).
+
+  ```
+  query(
+    me: field(
+      :user,
+      args: [id: 100],
+      select: [:name, :email]
+    )
+  )
+  ```
+
+  ```gql
+  query {
+    me: user(id: 100) {
+      name
+      email
+    }
+  }
+  ```
+
+  ### Directives
+
+  Express a directive by passing `directives:` to `field/1` or `field/2`.
+
+  A directive can be a single name (as an atom or string) or a tuple in
+  `{name, args}` format.
+
+  ```
+  query(
+    self: field(
+      directives: [:debug, log: [level: "warn"]]
+      select: [:name, :email]
+    )
+  )
+  ```
+
+  ```gql
+  query {
+    self @debug @log(level: "warn") {
+      name
+      email
+    }
+  }
+  ```
 
   ## Not-yet-supported features
 
@@ -66,6 +305,8 @@ defmodule GraphQLDocument do
   Creates a [TypeCondition](http://spec.graphql.org/October2021/#TypeCondition)
   for a [Fragment](http://spec.graphql.org/October2021/#sec-Language.Fragments).
 
+  See `GraphQLDocument.Fragment` for more details.
+
   ### Example
 
       iex> on(User)
@@ -78,163 +319,7 @@ defmodule GraphQLDocument do
   @doc """
   Generate a GraphQL query document.
 
-  # Syntax
-
-  ## Object Fields
-
-  To request a list of fields in an object, include them in a list.
-
-  `GraphQLDocument.query/2` will take this Elixir structure and return the
-  GraphQL document below.
-
-  ```elixir
-  [
-    human: [:name, :height]
-  ]
-  ```
-
-  ```gql
-  query {
-    human {
-      name
-      height
-    }
-  }
-  ```
-
-  ## Arguments
-
-  When a field includes arguments, wrap the arguments and child fields in a
-  tuple, like this.
-
-  ```elixir
-  {args, fields}
-  ```
-
-  `GraphQLDocument.query/2` will take this Elixir structure and return the
-  GraphQL document below.
-
-  ```elixir
-  [human: {
-    [id: "1000"],
-    [:name, :height]
-  }]
-  ```
-
-  ```gql
-  query {
-    human(id: "1000") {
-      name
-      height
-    }
-  }
-  ```
-
-  ### Argument types and Enums
-
-  Provide Elixir primitives (numbers, strings, lists, booleans, etc.) as
-  arguments, and they'll be translated into the analogous GraphQL primitive.
-
-  GraphQL enums can be expressed using atoms:
-
-  ```
-  FOOT
-  ```
-
-  For example, this Elixir structure becomes the following GraphQL document.
-
-  ```elixir
-  [human: {
-    [id: "1000"],
-    [:name, height: {[unit: FOOT], []}]
-  }]
-  ```
-
-  ```gql
-  query {
-    human(id: "1000") {
-      name
-      height(unit: FOOT)
-    }
-  }
-  ```
-
-  > #### Expressing arguments without sub-fields {: .tip}
-  >
-  > Notice the slightly complicated syntax above: `height: {[unit: FOOT], []}`
-  >
-  > The way to include arguments is in an `{args, fields}` tuple. So if a
-  > field has arguments but no sub-fields, put `[]` where the sub-fields go.
-  >
-  > Alternatively, use the `GraphQLDocument.field/1` helper.
-
-  ## Nesting Fields
-
-  Since GraphQL supports a theoretically infinite amount of nesting, you can also
-  nest as much as needed in the Elixir structure.
-
-  Furthermore, we can take advantage of Elixir's syntax feature that allows a
-  regular list to be "mixed" with a keyword list.
-
-  ```elixir
-  # Elixir allows lists with a Keyword List as the final members
-  [:name, :height, friends: [:name, :age]]
-  ```
-
-  Using this syntax, we can build a nested structure like this, which
-  translates to the GraphQL below.
-
-  ```elixir
-  [human: {
-    [id: "1000"],
-    [
-      :name,
-      :height,
-      friends: {
-        [olderThan: 30],
-        [:name, :height]
-      }
-    ]
-  }]
-  ```
-
-  ```gql
-  query {
-    human(id: "1000") {
-      name
-      height
-      friends(olderThan: 30) {
-        name
-        height
-      }
-    }
-  }
-  ```
-
-  ## Aliases
-
-  In order to name a field with an alias, follow the syntax below using
-  `GraphQLDocument.field/1`, where `me` is the alias and `user` is the field:
-
-  ```elixir
-  [me: field(
-    :user,
-    args: [id: 100],
-    select: [:name, :email]
-  )]
-  ```
-
-  Which will emit this GraphQL document:
-
-  ```gql
-  query {
-    me: user(id: 100) {
-      name
-      email
-    }
-  }
-  ```
-
+  See the **[Getting Started](#module-getting-started)** section for more details.
   """
   def query(selections, opts \\ []) do
     Operation.render(:query, selections, opts)
@@ -243,8 +328,7 @@ defmodule GraphQLDocument do
   @doc """
   Generate a GraphQL mutation document.
 
-  See `GraphQLDocument.query/2` for more details, as `subscription/2` is called
-  in the same way.
+  See the **[Getting Started](#module-getting-started)** section for more details.
   """
   def mutation(selections, opts \\ []) do
     Operation.render(:mutation, selections, opts)
@@ -253,8 +337,7 @@ defmodule GraphQLDocument do
   @doc """
   Generate a GraphQL subscription document.
 
-  See `GraphQLDocument.query/2` for more details, as `subscription/2` is called
-  in the same way.
+  See the **[Getting Started](#module-getting-started)** section for more details.
   """
   def subscription(selections, opts \\ []) do
     Operation.render(:subscription, selections, opts)
