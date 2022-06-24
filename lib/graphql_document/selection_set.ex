@@ -77,34 +77,10 @@ defmodule GraphQLDocument.SelectionSet do
     rendered =
       selection
       |> Enum.map_join("\n", fn
-        {:__fragment__, fragment} ->
-          {name, directives} =
-            case fragment do
-              {name, directives} -> {name, directives}
-              name -> {name, []}
-            end
-
+        {:..., fragment} ->
           [
             indent,
-            Fragment.render_spread(name, directives)
-          ]
-
-        {:__inline_fragment__, inline_fragment} ->
-          {on, directives, selection} =
-            case inline_fragment do
-              {on, directives, selection} -> {on, directives, selection}
-              {on, selection} -> {on, [], selection}
-              selection -> {nil, [], selection}
-            end
-
-          [
-            indent,
-            Fragment.render_inline(
-              on,
-              directives,
-              selection,
-              indent_level + 1
-            )
+            Fragment.render(fragment, indent_level + 1)
           ]
 
         field ->
