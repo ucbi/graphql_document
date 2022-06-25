@@ -34,7 +34,6 @@ defmodule GraphQLDocument.Field do
 
       [:id, :firstName, :lastName]
 
-
   If the field is an object type, express it as a keyword list with either
   `[fields]` or `{args, fields}` as the value of each key:
 

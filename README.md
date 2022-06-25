@@ -3,22 +3,22 @@
 [![Build Status](https://github.com/ucbi/graphql_document/workflows/CI/badge.svg)](https://github.com/ucbi/graphql_document/actions?query=workflow%3A%22CI%22)
 [![hex.pm](https://img.shields.io/hexpm/v/graphql_document.svg)](https://hex.pm/packages/graphql_document)
 [![hex.pm](https://img.shields.io/hexpm/l/graphql_document.svg)](https://hex.pm/packages/graphql_document)
+[![Documentation](https://img.shields.io/badge/documentation-gray)](https://hexdocs.pm/graphql_document/)
 
 Build [GraphQL](https://graphql.org/) document strings from Elixir primitives.
 
-## Better DX for internal GraphQL queries
+## A Power Tool for generating GraphQL Documents in Elixir
 
-The goal of GraphQLDocument is to improve the developer experience of
-making GraphQL calls in Elixir by calling directly into GraphQL libraries such
-as [Absinthe](https://hex.pm/packages/absinthe) without making API calls.
+The goal of GraphQLDocument is to give the developer superpowers when it comes
+to writing GraphQL document strings in Elixir.
 
-For Elixir projects that utilize [LiveView](https://hex.pm/packages/phoenix_live_view)
-and GraphQL, passing GraphQL queries as strings, `GraphQLDocument` can add value by
-making it easier to:
+Using the functions in this library, developers can:
 
-- Compose separate GraphQL documents together.
-- Dynamically build GraphQL documents, e.g. including or excluding various parts.
-- Interpolate arguments safely.
+- Build documents programmatically, enabling higher level tooling and DSLs.
+- Compose separate chunks of GraphQL documents together with ease.
+- Dynamically build GraphQL documents on the fly. (For example, including or excluding sections.)
+
+The complete documentation for GraphQLDocument is located [here](https://hexdocs.pm/graphql_document/).
 
 ## Installation
 
@@ -34,22 +34,48 @@ end
 
 ## Usage
 
-### With [Absinthe](https://hex.pm/packages/absinthe)
-
 ```elixir
-[
-  query: [
-    user: {
-      [id: 3],
-      [:name, :age, :height, documents: [:filename, :url]]
-    }
-  ]
-]
-|> GraphQLDocument.to_string()
-|> Absinthe.run(MyProject.Schema)
+query(
+  [
+    customer: {[id: var(:customerId)], [
+      :name,
+      :email,
+      phoneNumbers: field(args: [type: MOBILE]),
+      cartItems: [
+        :costPerItem,
+        ...: :cartDetails
+      ]
+    ]}
+  ],
+  variables: [customerId: Int],
+  fragments: [cartDetails: {
+    on(CartItem),
+    [:sku, :description, :count]
+  }]
+)
 ```
 
-For more information on syntax and features, read the docs in `GraphQLDocument`.
+```gql
+query ($customerId: Int) {
+  customer(id: $customerId) {
+    name
+    email
+    phoneNumbers(type: MOBILE)
+    cartItems {
+      costPerItem
+      ...cartDetails
+    }
+  }
+}
+
+fragment cartDetails on CartItem {
+  sku
+  description
+  count
+}
+```
+
+For more information on syntax and features, [read the docs here](https://hexdocs.pm/graphql_document/).
 
 ## License
 

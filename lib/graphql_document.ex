@@ -10,12 +10,17 @@ defmodule GraphQLDocument do
     - `GraphQLDocument.mutation/2`
     - `GraphQLDocument.subscription/2`
 
+  Using these abilities, developers can generate GraphQL queries programmatically.
+  `GraphQLDocument` can be used to create higher-level
+  [DSL](https://en.wikipedia.org/wiki/Domain-specific_language)s
+  for writing GraphQL queries.
+
   ## Getting Started
 
-  > #### Code Snippets {: .info}
+  > #### Elixir & GraphQL Code Snippets {: .info}
   >
-  > Each Elixir code snippet is immediately followed by the snippet of
-  > GraphQL that it will produce.
+  > Each Elixir code snippet is immediately followed by the GraphQL that it
+  > will produce.
 
   All functions called in the code snippets below are in `GraphQLDocument`.
   (`import GraphQLDocument` to directly use them.)
@@ -26,7 +31,10 @@ defmodule GraphQLDocument do
 
   ```
   query([
-    human: [:name, :height]
+    human: [
+      :name,
+      :height
+    ]
   ])
   ```
 
@@ -48,10 +56,12 @@ defmodule GraphQLDocument do
   ```
 
   ```
-  query(human: {
-    [id: "1000"],
-    [:name, :height]
-  })
+  query(
+    human: {[id: "1000"], [
+      :name,
+      :height
+    ]}
+  )
   ```
 
   ```gql
@@ -71,10 +81,12 @@ defmodule GraphQLDocument do
   Enums are expressed with atoms, like `MY_ENUM`, `:MY_ENUM`, or `:"MY_ENUM"`
 
   ```
-  [human: {
-    [id: "1000"],
-    [:name, height: {[unit: FOOT], []}]
-  }]
+  query(
+    human: {[id: "1000"], [
+      :name,
+      height: {[unit: FOOT], []}
+    ]}
+  )
   ```
 
   ```gql
@@ -106,7 +118,14 @@ defmodule GraphQLDocument do
 
   ```
   # Elixir allows lists with a Keyword List as the final members
-  [:name, :height, friends: [:name, :age]]
+  [
+    :name,
+    :height,
+    friends: [
+      :name,
+      :age
+    ]
+  ]
   ```
 
   Using this syntax, we can build a nested structure where we select primitive
@@ -235,7 +254,7 @@ defmodule GraphQLDocument do
   }
   ```
 
-  ## Features That Require `field/1`
+  ## Features That Require `field()`
 
   The `field/1` and `field/2` functions are required in order to express [Aliases](#module-aliases)
   and [Directives](#module-directives).
@@ -303,7 +322,13 @@ defmodule GraphQLDocument do
 
   """
 
-  alias GraphQLDocument.{Name, Operation, Fragment}
+  alias GraphQLDocument.{Field, Fragment, Name, Operation, Selection}
+
+  @type field_config :: [
+          {:args, [Argument.t()]}
+          | {:directives, [Directive.t()]}
+          | {:select, [Selection.t()]}
+        ]
 
   @doc """
   If you want to express a field with directives or an alias, you must use this
@@ -313,23 +338,52 @@ defmodule GraphQLDocument do
 
   ### Examples
 
-      iex> field(args: [id: 2], directives: [:debug], select: [:name])
-      {:field, [args: [id: 2], directives: [:debug], select: [:name]]}
+      iex> field(
+      ...>   args: [id: 2],
+      ...>   directives: [:debug],
+      ...>   select: [:name]
+      ...> )
+      {
+        :field,
+        [
+          args: [id: 2],
+          directives: [:debug],
+          select: [:name]
+        ]
+      }
 
   """
+  @spec field(field_config) :: Field.spec()
   def field(config), do: {:field, config}
 
   @doc """
   If you want to express a field with an alias, you must use this function.
 
+  Put the alias where you would normally put the field name, and pass the
+  field name as the first argument to `field/2`.
+
   See `field/1` if you want to specify directives without an alias.
 
   ### Examples
 
-      iex> field(:user, args: [id: 2], directives: [:debug], select: [:name])
-      {:field, :user, [args: [id: 2], directives: [:debug], select: [:name]]}
+      iex> field(
+      ...>   :user,
+      ...>   args: [id: 2],
+      ...>   directives: [:debug],
+      ...>   select: [:name]
+      ...> )
+      {
+        :field,
+        :user,
+        [
+          args: [id: 2],
+          directives: [:debug],
+          select: [:name]
+        ]
+      }
 
   """
+  @spec field(Name.t(), field_config) :: Field.spec()
   def field(name, config), do: {:field, name, config}
 
   @doc """
@@ -358,20 +412,82 @@ defmodule GraphQLDocument do
   @spec on(Name.t()) :: Fragment.type_condition()
   def on(name) when is_binary(name) or is_atom(name), do: {:on, name}
 
-  @doc """
+  @doc ~S'''
   Generate a GraphQL query document.
 
   See the **[Getting Started](#module-getting-started)** section for more details.
-  """
+
+  ### Example
+
+      iex> query(
+      ...>   [
+      ...>     customer: {[id: var(:customerId)], [
+      ...>       :name,
+      ...>       :email,
+      ...>       phoneNumbers: field(args: [type: MOBILE]),
+      ...>       cartItems: [
+      ...>         :costPerItem,
+      ...>         ...: :cartDetails
+      ...>       ]
+      ...>     ]}
+      ...>   ],
+      ...>   variables: [customerId: Int],
+      ...>   fragments: [cartDetails: {
+      ...>     on(CartItem),
+      ...>     [:sku, :description, :count]
+      ...>   }]
+      ...> )
+      """
+      query ($customerId: Int) {
+        customer(id: $customerId) {
+          name
+          email
+          phoneNumbers(type: MOBILE)
+          cartItems {
+            costPerItem
+            ...cartDetails
+          }
+        }
+      }
+      \nfragment cartDetails on CartItem {
+        sku
+        description
+        count
+      }\
+      """
+  '''
+  @spec query([Selection.t()], [Operation.option()]) :: String.t()
   def query(selections, opts \\ []) do
     Operation.render(:query, selections, opts)
   end
 
-  @doc """
+  @doc ~S'''
   Generate a GraphQL mutation document.
 
   See the **[Getting Started](#module-getting-started)** section for more details.
-  """
+  ### Example
+
+      iex> mutation(
+      ...>   registerUser: {
+      ...>     [
+      ...>       name: "Ben",
+      ...>       hexUsername: "benwilson512",
+      ...>       packages: ["absinthe", "ex_aws"]
+      ...>     ],
+      ...>     [
+      ...>       :id,
+      ...>     ]
+      ...>   }
+      ...> )
+      """
+      mutation {
+        registerUser(name: "Ben", hexUsername: "benwilson512", packages: ["absinthe", "ex_aws"]) {
+          id
+        }
+      }\
+      """
+  '''
+  @spec mutation([Selection.t()], [Operation.option()]) :: String.t()
   def mutation(selections, opts \\ []) do
     Operation.render(:mutation, selections, opts)
   end
@@ -379,8 +495,12 @@ defmodule GraphQLDocument do
   @doc """
   Generate a GraphQL subscription document.
 
+  Works like `query/2` and `mutation/2`, except that it generates a
+  subscription.
+
   See the **[Getting Started](#module-getting-started)** section for more details.
   """
+  @spec subscription([Selection.t()], [Operation.option()]) :: String.t()
   def subscription(selections, opts \\ []) do
     Operation.render(:subscription, selections, opts)
   end
