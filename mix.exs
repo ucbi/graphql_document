@@ -39,11 +39,23 @@ defmodule GraphQLDocument.MixProject do
 
   defp docs do
     [
-      main: "readme",
+      main: "GraphQLDocument",
       source_ref: "v#{@version}",
       source_url: @source_url,
-      extras: [
-        "README.md"
+      groups_for_modules: [
+        Language: [
+          GraphQLDocument.Argument,
+          GraphQLDocument.Directive,
+          GraphQLDocument.Enum,
+          GraphQLDocument.Field,
+          GraphQLDocument.Fragment,
+          GraphQLDocument.Name,
+          GraphQLDocument.Operation,
+          GraphQLDocument.Selection,
+          GraphQLDocument.Type,
+          GraphQLDocument.Value,
+          GraphQLDocument.Variable
+        ]
       ]
     ]
   end

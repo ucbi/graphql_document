@@ -10,13 +10,23 @@ defmodule GraphQLDocument.Operation do
           | {:fragments, [Fragment.definition()]}
           | {:directives, [Directive.t()]}
 
-  @doc """
+  @doc ~S'''
   Generates GraphQL syntax from a nested Elixir keyword list.
 
   ### Example
 
-      iex> render(:query, [user: {[id: 3], [:name, :age, :height, documents: [:filename, :url]]}])
-      \"\"\"
+      iex> render(:query,
+      ...>   user: {[id: 3], [
+      ...>     :name,
+      ...>     :age,
+      ...>     :height, documents: [:filename, :url]]})
+      ...>     documents: [
+      ...>       :filename, :url]]})
+      ...>       :url]]})
+      ...>     ]]})
+      ...>   ]}
+      ...> )
+      """
       query {
         user(id: 3) {
           name
@@ -27,10 +37,10 @@ defmodule GraphQLDocument.Operation do
             url
           }
         }
-      }\\
-      \"\"\"
+      }\
+      """
 
-  """
+  '''
   @spec render(operation_type, [Selection.t()], [option]) :: String.t()
   def render(operation_type \\ :query, selections, opts \\ [])
       when is_atom(operation_type) and (is_list(selections) or is_map(selections)) and
