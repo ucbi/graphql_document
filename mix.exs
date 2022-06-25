@@ -1,7 +1,7 @@
 defmodule GraphQLDocument.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.2.0"
   @source_url "https://github.com/ucbi/graphql_document"
 
   def project do
@@ -13,7 +13,7 @@ defmodule GraphQLDocument.MixProject do
       deps: deps(),
 
       # Hex
-      description: "Build GraphQL document strings from Elixir primitives",
+      description: "Build GraphQL documents with simple Elixir data structures",
       package: package(),
 
       # Docs
