@@ -1,8 +1,8 @@
 defmodule GraphQLDocument do
   @moduledoc """
   Builds [GraphQL](https://graphql.org/)
-  [Documents](http://spec.graphql.org/October2021/#sec-Document) from Elixir
-  primitives.
+  [Documents](http://spec.graphql.org/October2021/#sec-Document) from simple Elixir
+  data structures.
 
   These functions take Elixir data in the same structure as GraphQL and return the analogous GraphQL Document as a `String`.
 
