@@ -5,7 +5,7 @@
 [![hex.pm](https://img.shields.io/hexpm/l/graphql_document.svg)](https://hex.pm/packages/graphql_document)
 [![Documentation](https://img.shields.io/badge/documentation-gray)](https://hexdocs.pm/graphql_document/)
 
-Build [GraphQL](https://graphql.org/) document strings from Elixir primitives.
+Build [GraphQL](https://graphql.org/) documents from simple Elixir data structures.
 
 ## A Power Tool for generating GraphQL Documents in Elixir
 
