@@ -27,7 +27,7 @@ Add `:graphql_document` as a dependency in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:graphql_document, "~> 0.1.0"}
+    {:graphql_document, "~> 0.2.0"}
   ]
 end
 ```
