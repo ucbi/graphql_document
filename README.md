@@ -34,6 +34,9 @@ end
 
 ## Usage
 
+The following call to `GraphQLDocument.query(...)` will generate the GraphQL
+string below.
+
 ```elixir
 query(
   [
