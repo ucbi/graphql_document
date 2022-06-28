@@ -11,9 +11,33 @@ defmodule GraphQLDocument.Operation do
   @typedoc """
   Options that can be passed along with the operation.
 
-      - `variables`: See `GraphQLDocument.Variable.definition/0`
-      - `fragments`: See `GraphQLDocument.Fragment.definition/0`
-      - `directives`: See `GraphQLDocument.Directive.t/0`
+  - `variables`: See `t:GraphQLDocument.Variable.definition/0`
+  - `fragments`: See `t:GraphQLDocument.Fragment.definition/0`
+  - `directives`: See `t:GraphQLDocument.Directive.t/0`
+
+  ### Example
+
+      GraphQLDocument.query(
+        [...],
+        variables: [
+          postId: {Int, null: false},
+          commentType: String
+        ],
+        fragments: [
+          friendFields: {
+            on(User),
+            [
+              :id,
+              :name,
+              profilePic: field(args: [size: 50])
+            ]
+          }
+        ],
+        directives: [
+          :debug
+          [log: [level: "warn"]]
+        ]
+      )
   """
   @type option ::
           {:variables, [Variable.definition()]}
