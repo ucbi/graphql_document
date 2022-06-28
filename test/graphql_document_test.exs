@@ -14,7 +14,7 @@ defmodule GraphQLDocumentTest do
               :total,
               items: ~w(description amount),
               payments: {
-                [after: "2021-01-01", posted: true],
+                %{after: "2021-01-01", posted: true},
                 ~w(amount date)
               }
             ]
@@ -174,12 +174,12 @@ defmodule GraphQLDocumentTest do
 
     test "list and object arguments" do
       result =
-        GraphQLDocument.query(
+        GraphQLDocument.query(%{
           users: {
             [ids: [1, 2, 3], filters: [status: "active"]],
             [:name]
           }
-        )
+        })
 
       expected = """
       query {

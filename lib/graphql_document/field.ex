@@ -86,14 +86,15 @@ defmodule GraphQLDocument.Field do
     })
   end
 
-  def new({name, selections}) when is_list(selections) do
+  def new({name, selections}) when is_map(selections) or is_list(selections) do
     struct!(Field, %{
       name: Name.render!(name),
       select: selections
     })
   end
 
-  def new({name, {args, selections}}) when is_list(args) and is_list(selections) do
+  def new({name, {args, selections}})
+      when (is_map(args) or is_list(args)) and (is_map(selections) or is_list(selections)) do
     struct!(Field, %{
       name: Name.render!(name),
       args: args,
