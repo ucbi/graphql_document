@@ -24,7 +24,8 @@ defmodule GraphQLDocument.MixProject do
 
   defp deps do
     [
-      {:ex_doc, ">= 0.19.0", only: [:dev, :docs], runtime: false}
+      {:ex_doc, ">= 0.19.0", only: [:dev, :docs], runtime: false},
+      {:decimal, ">= 0.2.5", optional: true}
     ]
   end
 
