@@ -1,7 +1,7 @@
 defmodule GraphQLDocument.MixProject do
   use Mix.Project
 
-  @version "0.2.0"
+  @version "0.2.1"
   @source_url "https://github.com/ucbi/graphql_document"
 
   def project do
