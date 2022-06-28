@@ -10,7 +10,15 @@ defmodule GraphQLDocument.Directive do
 
   alias GraphQLDocument.{Argument, Name}
 
-  @typedoc "A GraphQL directive."
+  @typedoc """
+  A GraphQL directive.
+
+  ### Examples
+
+      :debug
+      [log: [level: "warn"]]
+
+  """
   @type t :: Name.t() | {Name.t(), [Argument.t()]}
 
   @doc """

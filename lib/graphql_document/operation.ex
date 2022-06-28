@@ -1,10 +1,20 @@
 defmodule GraphQLDocument.Operation do
+  @moduledoc """
+  An [Operation](http://spec.graphql.org/October2021/#sec-Language.Operations)
+  is a query, mutation, or subscription.
+  """
+
   alias GraphQLDocument.{Directive, Fragment, Selection, Variable}
 
-  @typedoc "See: http://spec.graphql.org/October2021/#OperationType"
   @type operation_type :: :query | :mutation | :subscription
 
-  @typedoc "Options that can be passed along with the operation."
+  @typedoc """
+  Options that can be passed along with the operation.
+
+      - `variables`: See `GraphQLDocument.Variable.definition/0`
+      - `fragments`: See `GraphQLDocument.Fragment.definition/0`
+      - `directives`: See `GraphQLDocument.Directive.t/0`
+  """
   @type option ::
           {:variables, [Variable.definition()]}
           | {:fragments, [Fragment.definition()]}
