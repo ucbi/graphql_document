@@ -60,14 +60,11 @@ defmodule GraphQLDocument.Field do
            ]}
 
   @typedoc """
-  A struct containing all of the aspects of a Field expression.
+           A struct containing all of the aspects of a Field expression.
 
-  > #### Internal Use Only {: .warning}
-  >
-  > Instead of creating `%Field{}` structs manually, use the
-  > `GraphQLDocument.field/1` function or provide a structure
-  > from `t:t/0`.
-  """
+           Instead of creating `%Field{}` structs manually, use the
+           `GraphQLDocument.field/1` function or provide a structure from `t:t/0`.
+           """ && false
   @type field_struct :: %Field{
           as: atom,
           name: atom,
