@@ -1,7 +1,7 @@
 defmodule GraphQLDocument.MixProject do
   use Mix.Project
 
-  @version "0.2.1"
+  @version "0.2.2"
   @source_url "https://github.com/ucbi/graphql_document"
 
   def project do
@@ -43,6 +43,7 @@ defmodule GraphQLDocument.MixProject do
       main: "GraphQLDocument",
       source_ref: "v#{@version}",
       source_url: @source_url,
+      extras: ["CHANGELOG.md"],
       groups_for_modules: [
         Language: [
           GraphQLDocument.Argument,
