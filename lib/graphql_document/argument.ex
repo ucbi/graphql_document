@@ -25,6 +25,10 @@ defmodule GraphQLDocument.Argument do
       ...> |> IO.iodata_to_binary()
       "(height: 100, width: 50)"
 
+      iex> render(name: nil, age: 50)
+      ...> |> IO.iodata_to_binary()
+      "(name: null, age: 50)"
+
       iex> render(name: "Joshua", city: "Montreal", friendsOfFriends: true)
       ...> |> IO.iodata_to_binary()
       "(name: \"Joshua\", city: \"Montreal\", friendsOfFriends: true)"
