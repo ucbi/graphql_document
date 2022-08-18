@@ -48,6 +48,9 @@ defmodule GraphQLDocument.Value do
       iex> render(Jedi)
       "Jedi"
 
+      iex> render(nil)
+      "null"
+
       iex> render({:var, :allegiance})
       [?$, "allegiance"]
 
@@ -71,6 +74,7 @@ defmodule GraphQLDocument.Value do
 
   """
   @spec render(t) :: iodata
+  def render(nil), do: "null"
   def render(%Date{} = date), do: inspect(Date.to_iso8601(date))
   def render(%DateTime{} = date_time), do: inspect(DateTime.to_iso8601(date_time))
   def render(%Time{} = time), do: inspect(Time.to_iso8601(time))
